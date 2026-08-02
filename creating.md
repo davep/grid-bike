@@ -177,27 +177,52 @@ Line 104 in David's code executes:
 ### 💬 Prompt 11
 > *"That's close, but the header pushes things down a bit and the user needs to scroll down. Is there a way to make this work in the browser where the user can play the game without needing to scroll down?"*
 
-### 🔍 Technical Rationale & Viewport Budgeting
-On mobile viewports (e.g. 667px–844px height smartphones), fixed canvas dimensions and vertical header padding caused content to overflow past `100dvh`, forcing vertical page scrolling to reach the D-Pad.
+### 🛠️ Work Done
+- Implemented a strict zero-scroll `100dvh` flex layout on mobile media queries (`<= 768px`) with `overflow: hidden`.
+- Compacted the header title bar and hid non-essential subtitles on mobile.
+
+---
+
+## Act X: iPhone 16 Pro Safari Safe-Area Flex Layout Fix
+
+### 💬 Prompt 12
+> *"If you look at @mobile.png you can see that the d-pad still isn't quite showing well in Safari on my iPhone 16Pro. Ensure it's a smooth experience and this isn't a problem."*
 
 ### 🛠️ Work Done
-- **Strict `100dvh` Zero-Scroll Layout (`style.css`):**
-  - Set `html, body { height: 100dvh; max-height: 100dvh; overflow: hidden; }` for screen widths `<= 768px`.
-  - Compacted the header title bar and hid non-essential subtitles on mobile.
-  - Set `#gameCanvas` to `max-height: 40vh` with responsive `object-fit: contain` so the canvas screen dynamically adjusts to fit the viewport alongside the HUD and D-Pad.
-  - Hid desktop-only side panels and footer on mobile to conserve 100% of vertical pixel space.
-- **Mobile Archive Access (`index.html` & `game.js`):**
-  - Integrated a compact `[ 📜 CODE ]` button into the mobile prompt action bar so mobile users can open the original magazine scans and BASIC disassembly modal without needing desktop side panels.
+- Updated mobile layout with `padding: env(safe-area-inset-top, 4px) 6px env(safe-area-inset-bottom, 6px) 6px;`.
+- Set `.subtitle` to `display: none !important`, reclaiming ~90px at the top of the viewport.
+- Dynamic flex canvas scaling so the game grid fits 100% visible above Safari's URL bar.
+
+---
+
+## Act XI: Mobile Page Scroll Integration & Modal Z-Index Fix
+
+### 💬 Prompt 13
+> *"Also, the 'Code' button seems to do nothing on mobile. (at least it didn't before this last change). What is its purpose given I can (and would want to) scroll down to find the links to the code?"*
+
+### 🔍 Technical Rationale & User Workflow
+The player clarified that while the initial screen viewport should fit the game screen and D-Pad without scrolling to play, they want to be able to scroll down the page naturally to read the magazine archive, view original scans, and inspect the BASIC code listing.
+
+### 🛠️ Work Done
+- **Natural Mobile Page Scroll (`style.css`):**
+  - Updated mobile layout so the CRT game container fits within `height: calc(100dvh - 35px)` for zero-scroll gameplay, while allowing `body { overflow-y: auto; }` so users can scroll down naturally.
+  - Enabled `.side-panel` cards (Keyboard Controls, Game Settings, Magazine Archive, and Footer) below the game on mobile viewports.
+- **Removed Redundant Mobile Action Button (`index.html` & `game.js`):**
+  - Removed the `📜 CODE` button from `.prompt-action-bar`, keeping prompt buttons focused strictly on `1: EASY` and `2: HARD`.
+- **Modal Z-Index Fix:**
+  - Set `.modal-overlay` `z-index: 9999` to ensure modal popups open reliably on top of all mobile viewport layers.
 
 ---
 
 ## Summary of Completed Files
 
-- **[`index.html`](index.html):** Main web app with CRT monitor frame, zero-scroll mobile controller bar, HUD, and magazine archive modal.
+- **[`index.html`](index.html):** Main web app with CRT monitor frame, safe-area mobile controller bar, HUD, and magazine archive modal.
 - **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
-- **[`style.css`](style.css):** Retro arcade CRT styling, zero-scroll `100dvh` mobile responsive layout, and D-Pad styles.
+- **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
 - **[`README.md`](README.md):** User-facing repository overview and technical summary.
 - **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
 - **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+
+
 
 

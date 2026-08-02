@@ -421,16 +421,16 @@ main {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
-  padding: 20px;
+  padding: 16px;
 }
 
 .modal-overlay.active {
@@ -560,78 +560,86 @@ footer a {
   text-decoration: none;
 }
 
-/* Responsive Mobile & Tablet Adjustments - Zero Scroll Layout */
+/* Responsive Mobile & Tablet Adjustments - Safe Area & Natural Scroll Layout */
 @media (max-width: 768px) {
-  html, body {
-    height: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
+  html {
+    height: auto;
+    overflow-x: hidden;
   }
 
   body {
-    padding: 6px 4px;
-    justify-content: flex-start;
-    gap: 4px;
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0;
+    padding: env(safe-area-inset-top, 4px) 6px env(safe-area-inset-bottom, 12px) 6px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   header {
-    margin-bottom: 2px;
+    margin: 0 0 4px 0;
+    padding: 2px 0;
     width: 100%;
+    flex-shrink: 0;
   }
 
   .title-container {
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 0;
   }
 
   .vic-badge {
-    font-size: 0.55rem;
-    padding: 2px 6px;
+    font-size: 0.5rem;
+    padding: 2px 5px;
   }
 
   h1 {
-    font-size: 1.1rem;
+    font-size: 1.0rem;
     letter-spacing: 1px;
   }
 
   .subtitle {
-    display: none; /* Hide subtitle on mobile to save vertical pixels */
+    display: none !important; /* Hide subtitle on mobile screens to save vertical pixels */
   }
 
   main {
-    flex: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-    overflow: hidden;
   }
 
   .workspace-layout {
-    gap: 6px;
     width: 100%;
-    height: 100%;
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .crt-container {
-    padding: 6px;
-    border-width: 4px;
-    border-radius: 14px;
+    height: calc(100dvh - 35px);
+    max-height: calc(100dvh - 35px);
     width: 100%;
     max-width: 400px;
-    flex: 1;
+    padding: 6px;
+    border-width: 4px;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+    box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .monitor-top-bar {
-    margin-bottom: 4px;
-    padding: 0 4px;
+    margin-bottom: 2px;
+    flex-shrink: 0;
   }
 
   .brand-label {
@@ -643,44 +651,48 @@ footer a {
   }
 
   .screen-frame {
-    padding: 4px;
-    border-radius: 8px;
+    flex: 1;
+    min-height: 0;
+    padding: 3px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex: 1;
-    min-height: 0; /* Allows canvas to shrink if needed */
+    overflow: hidden;
   }
 
   #gameCanvas {
     max-width: 100%;
-    max-height: 40vh; /* Keeps canvas strictly constrained inside mobile viewport */
+    max-height: 100%;
     width: auto;
     height: auto !important;
     aspect-ratio: 352 / 368;
     object-fit: contain;
+    flex-shrink: 1;
   }
 
   .hud-panel {
     margin-top: 4px;
-    padding: 4px 8px;
-    font-size: 0.65rem;
+    padding: 3px 6px;
+    font-size: 0.6rem;
     border-radius: 6px;
+    flex-shrink: 0;
   }
 
   .hud-label {
-    font-size: 0.5rem;
+    font-size: 0.45rem;
   }
 
   .hud-value {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   .mobile-controller {
-    margin-top: 6px;
-    padding: 6px;
-    gap: 6px;
+    margin-top: 4px;
+    padding: 4px;
+    gap: 4px;
     border-radius: 8px;
+    flex-shrink: 0;
   }
 
   .prompt-action-bar {
@@ -688,32 +700,40 @@ footer a {
   }
 
   .btn-action {
-    font-size: 0.65rem;
-    padding: 6px 10px;
-    min-width: 80px;
+    font-size: 0.7rem;
+    padding: 6px 14px;
+    min-width: 90px;
   }
 
   .touch-dpad-container {
-    gap: 4px;
+    gap: 3px;
     margin-top: 2px;
   }
 
   .dpad-row {
-    gap: 6px;
+    gap: 4px;
   }
 
   .dpad-btn {
-    width: 46px;
-    height: 46px;
-    font-size: 0.9rem;
+    width: 44px;
+    height: 44px;
+    font-size: 0.85rem;
     border-radius: 8px;
   }
 
+  /* Display side cards on mobile when scrolling down */
   .side-panel {
-    display: none; /* Hide desktop side cards on mobile screen to prevent vertical scroll */
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 20px;
   }
 
   footer {
-    display: none; /* Hide footer on mobile screens to ensure zero scroll */
+    display: block !important;
+    margin-top: 20px;
+    margin-bottom: 10px;
   }
 }
