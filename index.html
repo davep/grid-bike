@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Bike - Vic-20 (1983) Classic Recreation by David Pearson</title>
+  <meta name="description" content="A faithful standalone web recreation of Grid Bike, written in 1983 for the Commodore Vic-20 by David Pearson of York. Playable in your browser!">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="title-container">
+      <span class="vic-badge">COMMODORE VIC-20</span>
+      <h1>GRID BIKE</h1>
+    </div>
+    <p class="subtitle">A classic 1983 light cycle arcade game written by <span class="author-tag">David Pearson of York</span></p>
+  </header>
+
+  <!-- Main Arcade Layout -->
+  <main>
+    <div class="workspace-layout">
+
+      <!-- CRT Monitor Container -->
+      <div class="crt-container">
+        <div class="monitor-top-bar">
+          <span class="brand-label">COMMODORE VIC-20 MONITOR</span>
+          <div class="power-indicator">
+            <span class="led"></span> POWER
+          </div>
+        </div>
+
+        <!-- Canvas Screen Frame -->
+        <div class="screen-frame">
+          <canvas id="gameCanvas" width="352" height="368"></canvas>
+        </div>
+
+        <!-- Score & Status HUD Panel -->
+        <div class="hud-panel">
+          <div class="hud-item">
+            <span class="hud-label">SCORE</span>
+            <span id="hudScore" class="hud-value">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">HIGH SCORE</span>
+            <span id="hudHighScore" class="hud-value">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">GRID LEVEL</span>
+            <span id="hudLevel" class="hud-value">1</span>
+          </div>
+          <div class="hud-item">
+            <span class="hud-label">MEN</span>
+            <span id="hudMen" class="hud-value">1</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side Dashboard & Controls Panel -->
+      <div class="side-panel">
+
+        <!-- Keyboard Controls Guide -->
+        <div class="panel-card">
+          <h2 class="card-title">🎮 KEYBOARD CONTROLS</h2>
+          <div class="controls-grid">
+            <div class="control-item">
+              <span>LEFT</span>
+              <span class="key-badge">Z / ◀ / A</span>
+            </div>
+            <div class="control-item">
+              <span>RIGHT</span>
+              <span class="key-badge">X / ▶ / D</span>
+            </div>
+            <div class="control-item">
+              <span>UP</span>
+              <span class="key-badge">L / ▲ / W</span>
+            </div>
+            <div class="control-item">
+              <span>DOWN</span>
+              <span class="key-badge">, / ▼ / S</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Controls & Options -->
+        <div class="panel-card">
+          <h2 class="card-title">⚙️ GAME SETTINGS</h2>
+          <div class="btn-group">
+            <button id="btnRestart" class="btn btn-primary">🔄 NEW GAME / START</button>
+            <button id="btnSound" class="btn">🔊 SOUND: ON</button>
+            <button id="btnCrt" class="btn">📺 CRT EFFECT: ON</button>
+            <div class="control-item" style="margin-top: 5px;">
+              <span>GAME SPEED:</span>
+              <select id="speedSelect" style="background:#161a2b; color:#00f0ff; border:1px solid #00f0ff; border-radius:4px; padding:2px 6px; font-family:inherit;">
+                <option value="1">Original Vic-20 (1x)</option>
+                <option value="1.25">Fast (1.25x)</option>
+                <option value="1.5">Arcade Turbo (1.5x)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Documentation & History Modals -->
+        <div class="panel-card">
+          <h2 class="card-title">📜 MAGAZINE ARCHIVE</h2>
+          <div class="btn-group">
+            <button id="btnCode" class="btn">💻 SOURCE CODE & SCANS</button>
+            <button id="btnInfo" class="btn">📖 GAME INSTRUCTIONS</button>
+          </div>
+        </div>
+
+        <!-- Mobile Touch D-Pad -->
+        <div class="panel-card touch-controls">
+          <h2 class="card-title" style="margin-bottom:4px;">📱 TOUCH D-PAD</h2>
+          <div class="dpad-row">
+            <button id="dpadUp" class="dpad-btn">▲</button>
+          </div>
+          <div class="dpad-row">
+            <button id="dpadLeft" class="dpad-btn">◀</button>
+            <button id="dpadDown" class="dpad-btn">▼</button>
+            <button id="dpadRight" class="dpad-btn">▶</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal Popup Dialog -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">GRID BIKE - ARCHIVE & INSTRUCTIONS</h3>
+        <button id="modalClose" class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="code">Vic-20 BASIC Code</button>
+          <button class="tab-btn" data-tab="scans">Original PCN Magazine Scans</button>
+          <button class="tab-btn" data-tab="instructions">Instructions & Rules</button>
+        </div>
+
+        <!-- Tab 1: Code & Memory Notes -->
+        <div id="tab-code" class="tab-content active">
+          <p style="margin-bottom: 12px; color: #a0aec0;">
+            Transcribed directly from <strong>Popular Computing Weekly / PCN (December 15-21, 1983)</strong>.
+            Written by <strong>David Pearson</strong> of York.
+          </p>
+          <pre class="code-block">
+1000 POKE52,28:POKE56,28:CLR
+1010 FORI=7168TO7256:POKEI,PEEK(I+25600):NEXT
+1020 FORJ=7168TO7256:READQ:POKEJ,Q:NEXT
+5000 PRINT"{CLR}{WHITE}"
+5010 POKE36879,8
+5020 PRINT"           GRID BIKE "
+5030 PRINT"{DOWN}YOU ARE THE DRIVER "
+5040 PRINT"OF THE GRID BIKE."
+5050 PRINT"YOU MUST DRIVE ROUND "
+5060 PRINT"THE GRID PICKING UP"
+5070 PRINT"THE PEOPLE."
+5080 PRINT"AS YOU DRIVE AROUND"
+5090 PRINT"THE GRID YOU LEAVE A"
+5100 PRINT"TRAIL."
+5110 PRINT"IF YOU RUN INTO IT"
+5120 PRINT"YOU WILL BE KILLED."
+5130 PRINT"Z=LEFT"
+5140 PRINT"X=RIGHT"
+5150 PRINT"L=UP"
+5160 PRINT",=DOWN"
+5170 PRINT"{DOWN}     PRESS ANY KEY"
+5175 PRINT"{DOWN}BY D.PEARSON"
+5180 GETA$:IFA$=""THEN5180
+5190 PRINT"{CLR}"
+5200 PRINT"THIS PROGRAM LOADS THEGRAPHICS,SO LOAD IT EVERY TIME"
+5300 POKE198,7:POKE631,76:POKE632,207:POKE633,159:POKE634,13
+5400 POKE635,82:POKE636,213:POKE637,13
+9000 DATA0,231,255,255,255,255,231,0
+9010 DATA126,126,126,60,60,126,126,126
+9020 DATA255,129,129,129,129,129,129,255
+9030 DATA24,24,24,24,24,24,24,24
+9040 DATA0,0,0,255,255,0,0,0
+9050 DATA0,0,31,31,24,24,24,24
+9060 DATA0,0,248,248,24,24,24,24
+9070 DATA24,24,24,248,248,0,0,0
+9080 DATA24,24,24,31,31,0,0,0
+9090 DATA255,255,255,255,255,255,255,255
+9100 DATA28,28,8,62,8,20,34,65,0
+
+0 QWE=RND(1-TI)
+1 CLR
+2 PRINT"{CLR}DO YOU WANT EASY (1) OR HARD (2)";:INPUTTYU
+3 IFTYU<1ORTYU>2THEN2
+5 PRINT"{CLR}";:POKE36878,15:POKE36869,255
+10 A=8174:GRID=1:CH=1:DF=1:WT=3:NW=3:D=-22:SC=0:MAN=1
+45 POKE36879,56
+50 FORN=7680TO8185:POKEN,2:NEXT
+80 FORN=38400TO38905:POKEN,6:NEXT
+96 FORN=7680TO8164STEP22:POKEN,9:NEXT
+97 FORN=38400TO38884STEP22:POKEN,0:NEXT
+98 FORN=1TOMAN:RP=INT(RND(1)*506)+7680:IFPEEK(RP)<>2THENRP=RP+1
+99 POKERP,10:NEXTN
+100 IFTYU=1THEN103
+101 FORN=1TO10:SP=INT(RND(1)*506)+7680:IFPEEK(SP)<>2THENSP=SP+1
+102 POKESP,230:POKESP+30720,0:NEXT
+103 POKEA,CH:POKEA+30720,2:POKEA+(-D),WT
+104 POKE36874,196:POKE36875,196:POKE36876,176
+105 OD=D
+106 IFNW=0THEN110
+107 WT=NW
+110 GETA$
+120 IFA$="Z"THEND=-1:WT=4:CH=0
+130 IFA$="X"THEND=1:WT=4:CH=0
+140 IFA$="L"THEND=-22:WT=3:CH=1
+150 IFA$=","THEND=22:WT=3:CH=1
+160 A=A+D
+162 IFPEEK(A)>2ANDPEEK(A)<10ORPEEK(A)=230THEN4000
+163 IFPEEK(A)=10THENGOTO6100
+165 GOTO3000
+180 IFA<7680ORA>8185THENGOTO4000
+190 GOTO103
+
+3000 IFOD=-22ANDD=1THENNW=4:WT=6
+3010 IFOD=-22ANDD=-1THENNW=4:WT=7
+3020 IFOD=22ANDD=1THENNW=4:WT=5
+3030 IFOD=22ANDD=-1THENNW=4:WT=8
+3040 IFOD=1ANDD=22THENNW=3:WT=6
+3050 IFOD=-1ANDD=22THENNW=3:WT=7
+3060 IFOD=-1ANDD=-22THENNW=3:WT=8
+3070 IFOD=1ANDD=-22THENNW=3:WT=5
+3080 GOTO180
+          </pre>
+        </div>
+
+        <!-- Tab 2: Magazine Scans -->
+        <div id="tab-scans" class="tab-content">
+          <div class="scan-image-viewer">
+            <h4>Page 1 (PCN Dec 15-21, 1983 - Page 83)</h4>
+            <img src="grid-bike-page-1.jpg" alt="Grid Bike Page 1 Scan" class="scan-img">
+            <h4 style="margin-top: 20px;">Page 2 (PCN Dec 15-21, 1983 - Page 85)</h4>
+            <img src="grid-bike-page-2.jpg" alt="Grid Bike Page 2 Scan" class="scan-img">
+          </div>
+        </div>
+
+        <!-- Tab 3: Instructions -->
+        <div id="tab-instructions" class="tab-content">
+          <h3>Mission Briefing</h3>
+          <p style="margin: 10px 0; line-height: 1.6;">
+            Light cycles on the unexpanded Vic-20! You are presented with a multicoloured grid on which stranded people are located.
+          </p>
+          <ul style="margin-left: 20px; line-height: 1.8;">
+            <li><strong>Objective:</strong> Collect all stranded men (stick figures) without crashing your Grid Bike.</li>
+            <li><strong>Trail Warning:</strong> As your bike moves, it leaves behind a solid light trail. Running into your trail, outer walls, or obstacle blocks will result in an immediate fatal crash!</li>
+            <li><strong>Easy Mode:</strong> Grid contains stranded men and empty grid tiles.</li>
+            <li><strong>Hard Mode:</strong> Adds 10 (or more) dangerous black obstacle blocks placed by the computer across the grid!</li>
+            <li><strong>Level Progression:</strong> Rescuing all men on the screen clears the grid ("GRID CLEARED") and advances to the next stage with more men and tighter challenges!</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Grid Bike Vic-20 Standalone Recreation &copy; 1983 David Pearson | Web HTML5 Edition 2026</p>
+  </footer>
+
+  <script src="game.js"></script>
+</body>
+</html>

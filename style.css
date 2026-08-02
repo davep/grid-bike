@@ -1,0 +1,533 @@
+/* Grid Bike - Vic20 Retro Styling */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --vic-border: #e6de00; /* Vic-20 Yellow border */
+  --vic-bg: #ffffff;     /* Vic-20 White background */
+  --vic-grid: #0000aa;   /* Vic-20 Blue text/grid */
+  --vic-head: #dd0000;   /* Vic-20 Red bike head */
+  --vic-man: #00aa00;    /* Vic-20 Green / Cyan man */
+  --vic-wall: #000000;   /* Vic-20 Black wall */
+  --bg-dark: #0f111a;
+  --panel-bg: rgba(22, 26, 42, 0.85);
+  --neon-cyan: #00f0ff;
+  --neon-pink: #ff007f;
+  --neon-amber: #ffaa00;
+  --neon-green: #39ff14;
+  --font-retro: 'Press Start 2P', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 50% 20%, #1a2038 0%, #080a12 100%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 30px 30px, 30px 30px;
+  color: #e0e6ed;
+  font-family: var(--font-mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 10px;
+  overflow-x: hidden;
+}
+
+/* Header Container */
+header {
+  text-align: center;
+  margin-bottom: 20px;
+  max-width: 900px;
+  width: 100%;
+}
+
+.title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 8px;
+}
+
+.vic-badge {
+  background: linear-gradient(135deg, #c0392b, #8e44ad);
+  color: #fff;
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(192, 57, 43, 0.5);
+  letter-spacing: 1px;
+}
+
+h1 {
+  font-family: var(--font-retro);
+  font-size: 2.2rem;
+  color: #fff;
+  text-shadow: 
+    0 0 5px var(--neon-cyan),
+    0 0 15px var(--neon-cyan),
+    0 0 30px rgba(0, 240, 255, 0.6);
+  letter-spacing: 3px;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: #a0aec0;
+  letter-spacing: 1px;
+}
+
+.author-tag {
+  color: var(--neon-amber);
+  font-weight: bold;
+}
+
+/* Arcade Layout Main */
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1050px;
+}
+
+.workspace-layout {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 25px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+/* CRT Monitor Housing */
+.crt-container {
+  position: relative;
+  background: #1e222d;
+  border: 12px solid #2a3040;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 
+    0 0 0 4px #12151e,
+    0 20px 50px rgba(0, 0, 0, 0.8),
+    inset 0 0 20px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.monitor-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 0 6px;
+}
+
+.brand-label {
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  color: #718096;
+  letter-spacing: 1px;
+}
+
+.power-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ff3b30;
+  box-shadow: 0 0 8px #ff3b30, inset 0 0 2px #fff;
+  animation: pulse-led 2s infinite alternate;
+}
+
+@keyframes pulse-led {
+  0% { opacity: 0.8; box-shadow: 0 0 6px #ff3b30; }
+  100% { opacity: 1; box-shadow: 0 0 12px #ff3b30, 0 0 20px #ff3b30; }
+}
+
+/* Screen Wrapper */
+.screen-frame {
+  position: relative;
+  background-color: var(--vic-border); /* Outer yellow border of Vic-20 */
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+/* CRT Scanline Overlay */
+.screen-frame::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.08) 0px,
+    rgba(0, 0, 0, 0.08) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  border-radius: 12px;
+  transition: opacity 0.3s ease;
+}
+
+.screen-frame.crt-off::after {
+  opacity: 0;
+}
+
+/* Canvas Element */
+#gameCanvas {
+  display: block;
+  background-color: var(--vic-bg);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+}
+
+/* Status Bar & Score HUD */
+.hud-panel {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px 16px;
+  background: rgba(10, 12, 20, 0.7);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: var(--font-retro);
+  font-size: 0.75rem;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud-label {
+  color: #718096;
+  font-size: 0.55rem;
+}
+
+.hud-value {
+  color: var(--neon-cyan);
+  font-size: 0.85rem;
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+}
+
+/* Side Dashboard Panel */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 320px;
+  min-width: 280px;
+}
+
+.panel-card {
+  background: var(--panel-bg);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.card-title {
+  font-family: var(--font-retro);
+  font-size: 0.75rem;
+  color: var(--neon-amber);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+/* Controls Guide Grid */
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.key-badge {
+  background: #2d3748;
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Action Buttons */
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn {
+  background: linear-gradient(135deg, #2b3648, #1a202c);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #3a4a63, #252d3d);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 240, 255, 0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0088cc, #005599);
+  border-color: #00aaff;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0099ee, #0066bb);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 170, 255, 0.5);
+}
+
+/* Virtual Touch D-Pad for Mobile/Touch */
+.touch-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dpad-row {
+  display: flex;
+  gap: 6px;
+}
+
+.dpad-btn {
+  width: 50px;
+  height: 50px;
+  background: #2d3748;
+  border: 2px solid var(--neon-cyan);
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-retro);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  touch-action: manipulation;
+}
+
+.dpad-btn:active {
+  background: var(--neon-cyan);
+  color: #000;
+  transform: scale(0.95);
+}
+
+/* Modal Popup Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-container {
+  background: #161a2b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 240, 255, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-title {
+  font-family: var(--font-retro);
+  font-size: 0.9rem;
+  color: var(--neon-cyan);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--neon-pink);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tabs-nav {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.scan-image-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.scan-img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+pre.code-block {
+  background: #090b10;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  color: #00ffaa;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Footer */
+footer {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+footer a {
+  color: var(--neon-cyan);
+  text-decoration: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  h1 { font-size: 1.5rem; }
+  .screen-frame { padding: 10px; }
+  .crt-container { padding: 12px; border-width: 6px; }
+  .side-panel { width: 100%; }
+}
