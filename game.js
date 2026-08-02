@@ -685,6 +685,13 @@ class GridBikeGame {
     }
   }
 
+  handleScreenTap() {
+    this.soundChip.ensureAudioContext();
+    if (this.state === 'LOADER' || this.state === 'GAME_OVER') {
+      this.showDifficultyPrompt();
+    }
+  }
+
   // --- ANIMATION LOOP ---
   loop(timestamp) {
     if (this.state === 'PLAYING') {
@@ -703,6 +710,14 @@ let gameInstance = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   gameInstance = new GridBikeGame('gameCanvas');
+
+  // Tap Canvas to advance prompts
+  const gameCanvas = document.getElementById('gameCanvas');
+  if (gameCanvas) {
+    gameCanvas.addEventListener('pointerdown', () => {
+      gameInstance.handleScreenTap();
+    });
+  }
 
   // Control Buttons & Toggles
   document.getElementById('btnRestart').addEventListener('click', () => {
@@ -731,16 +746,60 @@ window.addEventListener('DOMContentLoaded', () => {
     gameInstance.speedMultiplier = parseFloat(e.target.value);
   });
 
-  // Touch D-Pad Controls
+  // Mobile Prompt Action Buttons
+  const btnEasy = document.getElementById('btnEasy');
+  const btnHard = document.getElementById('btnHard');
+  const btnStartPrompt = document.getElementById('btnStartPrompt');
+
+  if (btnEasy) {
+    btnEasy.addEventListener('pointerdown', () => {
+      gameInstance.soundChip.ensureAudioContext();
+      gameInstance.startNewGame(1);
+    });
+  }
+
+  if (btnHard) {
+    btnHard.addEventListener('pointerdown', () => {
+      gameInstance.soundChip.ensureAudioContext();
+      gameInstance.startNewGame(2);
+    });
+  }
+
+  if (btnStartPrompt) {
+    btnStartPrompt.addEventListener('pointerdown', () => {
+      gameInstance.soundChip.ensureAudioContext();
+      if (gameInstance.state === 'LOADER' || gameInstance.state === 'GAME_OVER') {
+        gameInstance.showDifficultyPrompt();
+      } else if (gameInstance.state === 'DIFFICULTY') {
+        gameInstance.startNewGame(1);
+      } else {
+        gameInstance.showDifficultyPrompt();
+      }
+    });
+  }
+
+  // Touch D-Pad Controls (Works for both gameplay and prompt answering)
   const dpadLeft = document.getElementById('dpadLeft');
   const dpadRight = document.getElementById('dpadRight');
   const dpadUp = document.getElementById('dpadUp');
   const dpadDown = document.getElementById('dpadDown');
 
-  if (dpadLeft) dpadLeft.addEventListener('pointerdown', () => gameInstance.queueInput('LEFT'));
-  if (dpadRight) dpadRight.addEventListener('pointerdown', () => gameInstance.queueInput('RIGHT'));
-  if (dpadUp) dpadUp.addEventListener('pointerdown', () => gameInstance.queueInput('UP'));
-  if (dpadDown) dpadDown.addEventListener('pointerdown', () => gameInstance.queueInput('DOWN'));
+  const handleDpadInput = (dir) => {
+    gameInstance.soundChip.ensureAudioContext();
+    if (gameInstance.state === 'LOADER' || gameInstance.state === 'GAME_OVER') {
+      gameInstance.showDifficultyPrompt();
+    } else if (gameInstance.state === 'DIFFICULTY') {
+      if (dir === 'LEFT' || dir === 'UP') gameInstance.startNewGame(1);
+      else if (dir === 'RIGHT' || dir === 'DOWN') gameInstance.startNewGame(2);
+    } else if (gameInstance.state === 'PLAYING') {
+      gameInstance.queueInput(dir);
+    }
+  };
+
+  if (dpadLeft) dpadLeft.addEventListener('pointerdown', () => handleDpadInput('LEFT'));
+  if (dpadRight) dpadRight.addEventListener('pointerdown', () => handleDpadInput('RIGHT'));
+  if (dpadUp) dpadUp.addEventListener('pointerdown', () => handleDpadInput('UP'));
+  if (dpadDown) dpadDown.addEventListener('pointerdown', () => handleDpadInput('DOWN'));
 
   // Modals setup
   const modalOverlay = document.getElementById('modalOverlay');

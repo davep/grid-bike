@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Grid Bike - Vic-20 (1983) Classic Recreation by David Pearson</title>
   <meta name="description" content="A faithful standalone web recreation of Grid Bike, written in 1983 for the Commodore Vic-20 by David Pearson of York. Playable in your browser!">
   <link rel="stylesheet" href="style.css">
@@ -55,9 +55,31 @@
             <span id="hudMen" class="hud-value">1</span>
           </div>
         </div>
+
+        <!-- Mobile-first On-Screen Controller (Visible right below screen on phones & tablets) -->
+        <div class="mobile-controller">
+          <!-- Prompt Action Buttons (1: Easy, 2: Hard, Start) -->
+          <div class="prompt-action-bar">
+            <button id="btnEasy" class="btn btn-action">1: EASY</button>
+            <button id="btnHard" class="btn btn-action">2: HARD</button>
+            <button id="btnStartPrompt" class="btn btn-action btn-primary">▶ START / RESTART</button>
+          </div>
+
+          <!-- Touch D-Pad -->
+          <div class="touch-dpad-container">
+            <div class="dpad-row">
+              <button id="dpadUp" class="dpad-btn">▲</button>
+            </div>
+            <div class="dpad-row">
+              <button id="dpadLeft" class="dpad-btn">◀</button>
+              <button id="dpadDown" class="dpad-btn">▼</button>
+              <button id="dpadRight" class="dpad-btn">▶</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Side Dashboard & Controls Panel -->
+      <!-- Side Dashboard & Desktop Controls Panel -->
       <div class="side-panel">
 
         <!-- Keyboard Controls Guide -->
@@ -107,19 +129,6 @@
           <div class="btn-group">
             <button id="btnCode" class="btn">💻 SOURCE CODE & SCANS</button>
             <button id="btnInfo" class="btn">📖 GAME INSTRUCTIONS</button>
-          </div>
-        </div>
-
-        <!-- Mobile Touch D-Pad -->
-        <div class="panel-card touch-controls">
-          <h2 class="card-title" style="margin-bottom:4px;">📱 TOUCH D-PAD</h2>
-          <div class="dpad-row">
-            <button id="dpadUp" class="dpad-btn">▲</button>
-          </div>
-          <div class="dpad-row">
-            <button id="dpadLeft" class="dpad-btn">◀</button>
-            <button id="dpadDown" class="dpad-btn">▼</button>
-            <button id="dpadRight" class="dpad-btn">▶</button>
           </div>
         </div>
 
@@ -182,8 +191,8 @@
 9020 DATA255,129,129,129,129,129,129,255
 9030 DATA24,24,24,24,24,24,24,24
 9040 DATA0,0,0,255,255,0,0,0
-9050 DATA0,0,31,31,24,24,24,24
-9060 DATA0,0,248,248,24,24,24,24
+9050 DATA0,0,0,31,31,24,24,24
+9060 DATA0,0,0,248,248,24,24,24
 9070 DATA24,24,24,248,248,0,0,0
 9080 DATA24,24,24,31,31,0,0,0
 9090 DATA255,255,255,255,255,255,255,255
@@ -222,14 +231,14 @@
 180 IFA<7680ORA>8185THENGOTO4000
 190 GOTO103
 
-3000 IFOD=-22ANDD=1THENNW=4:WT=6
-3010 IFOD=-22ANDD=-1THENNW=4:WT=7
-3020 IFOD=22ANDD=1THENNW=4:WT=5
-3030 IFOD=22ANDD=-1THENNW=4:WT=8
+3000 IFOD=-22ANDD=-1THENNW=4:WT=6
+3010 IFOD=22ANDD=-1THENNW=4:WT=7
+3020 IFOD=-22ANDD=1THENNW=4:WT=5
+3030 IFOD=22ANDD=1THENNW=4:WT=8
 3040 IFOD=1ANDD=22THENNW=3:WT=6
-3050 IFOD=-1ANDD=22THENNW=3:WT=7
+3050 IFOD=1ANDD=-22THENNW=3:WT=7
 3060 IFOD=-1ANDD=-22THENNW=3:WT=8
-3070 IFOD=1ANDD=-22THENNW=3:WT=5
+3070 IFOD=-1ANDD=22THENNW=3:WT=5
 3080 GOTO180
           </pre>
         </div>
