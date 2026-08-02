@@ -33,6 +33,182 @@ const VIC_COLORS = {
   7: '#eeee00'  // Yellow
 };
 
+/**
+ * Hardware-Accurate MOS 6560/6561 VIC Sound Chip Emulator
+ * Recreates the 4-channel sound registers of the Commodore Vic-20:
+ * - 36874 ($900E): Voice 1 (Bass)
+ * - 36875 ($900F): Voice 2 (Alto - +1 Octave)
+ * - 36876 ($9010): Voice 3 (Soprano - +2 Octaves)
+ * - 36877 ($9011): Voice 4 (White Noise)
+ * - 36878 ($9012): Master Volume (Bits 0-3)
+ */
+class Vic20SoundChip {
+  constructor() {
+    this.audioCtx = null;
+    this.masterGain = null;
+    this.volume = 15; // Default max volume (0 to 15)
+    this.isMuted = false;
+
+    // Channels configuration
+    this.channels = [
+      { osc: null, gain: null, regVal: 0, octMult: 1 }, // 36874 (Bass)
+      { osc: null, gain: null, regVal: 0, octMult: 2 }, // 36875 (Alto)
+      { osc: null, gain: null, regVal: 0, octMult: 4 }, // 36876 (Soprano)
+      { source: null, gain: null, regVal: 0, type: 'noise' } // 36877 (Noise)
+    ];
+  }
+
+  ensureAudioContext() {
+    if (!this.audioCtx) {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      this.audioCtx = new AudioCtxClass();
+
+      // Master volume node
+      this.masterGain = this.audioCtx.createGain();
+      this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, this.audioCtx.currentTime);
+      this.masterGain.connect(this.audioCtx.destination);
+
+      // Create persistent 50% duty-cycle square wave oscillators for Voices 1, 2, 3
+      for (let i = 0; i < 3; i++) {
+        const ch = this.channels[i];
+        ch.gain = this.audioCtx.createGain();
+        ch.gain.gain.setValueAtTime(0, this.audioCtx.currentTime);
+
+        ch.osc = this.audioCtx.createOscillator();
+        ch.osc.type = 'square'; // Vic-20 pulse/square wave
+        ch.osc.frequency.setValueAtTime(440, this.audioCtx.currentTime);
+        ch.osc.connect(ch.gain);
+        ch.gain.connect(this.masterGain);
+        ch.osc.start();
+      }
+
+      // Create noise buffer source for Voice 4 (Noise generator)
+      this.initNoiseChannel();
+    }
+
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+  }
+
+  initNoiseChannel() {
+    const bufferSize = this.audioCtx.sampleRate * 2;
+    const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noiseCh = this.channels[3];
+    noiseCh.gain = this.audioCtx.createGain();
+    noiseCh.gain.gain.setValueAtTime(0, this.audioCtx.currentTime);
+
+    noiseCh.source = this.audioCtx.createBufferSource();
+    noiseCh.source.buffer = buffer;
+    noiseCh.source.loop = true;
+    noiseCh.source.connect(noiseCh.gain);
+    noiseCh.gain.connect(this.masterGain);
+    noiseCh.source.start();
+  }
+
+  /**
+   * Directly simulates POKE command to Vic-20 sound registers
+   * @param {number} register - 36874, 36875, 36876, 36877, or 36878
+   * @param {number} val - Byte value (0-255)
+   */
+  poke(register, val) {
+    if (this.isMuted) return;
+    this.ensureAudioContext();
+    if (!this.audioCtx) return;
+
+    const now = this.audioCtx.currentTime;
+
+    // Master Volume Register (36878)
+    if (register === 36878) {
+      this.volume = val & 0x0f;
+      this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, now);
+      return;
+    }
+
+    const channelIdx = register - 36874;
+    if (channelIdx < 0 || channelIdx > 3) return;
+
+    const ch = this.channels[channelIdx];
+    ch.regVal = val;
+
+    const enabled = (val & 0x80) !== 0; // Bit 7: Sound Enable
+    const freqVal = val & 0x7f;        // Bits 0-6: Frequency
+
+    if (channelIdx < 3) {
+      // Tone Channels 1, 2, 3 (Bass, Alto, Soprano)
+      if (enabled && freqVal > 0) {
+        // Authentic Vic-20 Frequency Formula: Freq = (138550.5 / (255 - freqVal)) * octaveMultiplier
+        const baseFreq = 138550.5 / (255 - freqVal);
+        const freqHz = baseFreq * ch.octMult;
+        ch.osc.frequency.setValueAtTime(freqHz, now);
+        ch.gain.gain.setValueAtTime(0.08, now); // Voice volume
+      } else {
+        ch.gain.gain.setValueAtTime(0, now);
+      }
+    } else {
+      // Channel 4: White Noise
+      if (enabled) {
+        ch.gain.gain.setValueAtTime(0.12, now);
+      } else {
+        ch.gain.gain.setValueAtTime(0, now);
+      }
+    }
+  }
+
+  silenceAll() {
+    this.poke(36874, 0);
+    this.poke(36875, 0);
+    this.poke(36876, 0);
+    this.poke(36877, 0);
+  }
+
+  playManPickup() {
+    // High-pitched Vic20 chime
+    this.poke(36876, 240); // High soprano note (~3694 Hz)
+    setTimeout(() => {
+      this.poke(36876, 248); // Even higher soprano note (~5542 Hz)
+    }, 70);
+    setTimeout(() => {
+      // Restore motor hum
+      this.poke(36874, 196);
+      this.poke(36875, 196);
+      this.poke(36876, 176);
+    }, 150);
+  }
+
+  playCrashExplosion() {
+    this.silenceAll();
+    this.poke(36877, 240); // Noise enabled
+    if (this.masterGain) {
+      const now = this.audioCtx.currentTime;
+      this.masterGain.gain.setValueAtTime(0.2, now);
+      this.masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      setTimeout(() => {
+        this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, this.audioCtx.currentTime);
+        this.silenceAll();
+      }, 500);
+    }
+  }
+
+  playLevelClearFanfare() {
+    const notes = [200, 215, 225, 235];
+    notes.forEach((val, idx) => {
+      setTimeout(() => {
+        this.poke(36876, val);
+      }, idx * 100);
+    });
+    setTimeout(() => {
+      this.silenceAll();
+    }, 500);
+  }
+}
+
 class GridBikeGame {
   constructor(canvasId) {
     this.canvas = document.getElementById(canvasId);
@@ -57,6 +233,9 @@ class GridBikeGame {
     this.screenRAM = new Uint8Array(this.TOTAL_CELLS);
     this.colorRAM = new Uint8Array(this.TOTAL_CELLS);
 
+    // Hardware-Accurate Vic-20 Sound Chip Emulator
+    this.soundChip = new Vic20SoundChip();
+
     // Game Variables (matching BASIC line 10)
     this.state = 'LOADER'; // 'LOADER', 'DIFFICULTY', 'PLAYING', 'LEVEL_CLEAR', 'GAME_OVER'
     this.difficulty = 1;   // 1 = Easy, 2 = Hard
@@ -78,10 +257,8 @@ class GridBikeGame {
     this.lastTickTime = 0;
     this.tickInterval = 120; // ms per tick (approx 8.3 FPS retro Vic20 feel)
     this.speedMultiplier = 1;
-    this.soundEnabled = true;
 
-    // Initialize Audio & Input
-    this.initAudio();
+    // Initialize Input & Loader
     this.initInput();
     this.showLoaderScreen();
 
@@ -89,98 +266,10 @@ class GridBikeGame {
     requestAnimationFrame(this.loop.bind(this));
   }
 
-  // --- WEB AUDIO VIC-20 SYNTHESIZER ---
-  initAudio() {
-    this.audioCtx = null;
-  }
-
-  ensureAudioContext() {
-    if (!this.audioCtx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        this.audioCtx = new AudioCtx();
-      }
-    }
-    if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
-    }
-  }
-
-  playVicSound(freq, duration, type = 'square', volume = 0.1) {
-    if (!this.soundEnabled) return;
-    this.ensureAudioContext();
-    if (!this.audioCtx) return;
-
-    try {
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
-      gain.gain.setValueAtTime(volume, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + duration);
-
-      osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
-
-      osc.start();
-      osc.stop(this.audioCtx.currentTime + duration);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  playEngineHum() {
-    // Vic-20 motor frequency (POKE 36874, 196: POKE 36875, 196: POKE 36876, 176)
-    this.playVicSound(180, 0.08, 'sawtooth', 0.04);
-  }
-
-  playManPickupSound() {
-    this.playVicSound(587.33, 0.08, 'square', 0.15); // D5
-    setTimeout(() => this.playVicSound(880, 0.12, 'square', 0.2), 80); // A5
-  }
-
-  playCrashSound() {
-    if (!this.soundEnabled) return;
-    this.ensureAudioContext();
-    if (!this.audioCtx) return;
-
-    // Noise burst for Vic20 explosion
-    try {
-      const bufferSize = this.audioCtx.sampleRate * 0.4;
-      const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
-      const output = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
-
-      const noise = this.audioCtx.createBufferSource();
-      noise.buffer = buffer;
-
-      const gain = this.audioCtx.createGain();
-      gain.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.4);
-
-      noise.connect(gain);
-      gain.connect(this.audioCtx.destination);
-
-      noise.start();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  playLevelClearFanfare() {
-    const notes = [523.25, 659.25, 783.99, 1046.50];
-    notes.forEach((freq, idx) => {
-      setTimeout(() => this.playVicSound(freq, 0.1, 'square', 0.15), idx * 90);
-    });
-  }
-
   // --- INPUT HANDLING ---
   initInput() {
     window.addEventListener('keydown', (e) => {
-      this.ensureAudioContext();
+      this.soundChip.ensureAudioContext();
 
       if (this.state === 'LOADER') {
         this.showDifficultyPrompt();
@@ -332,6 +421,9 @@ class GridBikeGame {
     this.NW = 3;
     this.inputQueue = [];
 
+    // Line 5: Sound Volume = 15
+    this.soundChip.poke(36878, 15);
+
     this.menRemaining = this.gridLevel;
 
     // Fill screen with char 2 (Grid Box) and blue color
@@ -392,8 +484,10 @@ class GridBikeGame {
       this.pokeColor(prevCell, 6); // Blue trail
     }
 
-    // 2. Engine sound hum
-    this.playEngineHum();
+    // 2. Line 104: POKE 36874,196 : POKE 36875,196 : POKE 36876,176 (Exact Vic-20 motor chord POKEs!)
+    this.soundChip.poke(36874, 196);
+    this.soundChip.poke(36875, 196);
+    this.soundChip.poke(36876, 176);
 
     // 3. Line 105: Store old direction
     this.OD = this.D;
@@ -466,13 +560,13 @@ class GridBikeGame {
   handleManCollected() {
     this.score += 100;
     this.menRemaining--;
-    this.playManPickupSound();
+    this.soundChip.playManPickup();
     this.updateHUD();
 
     if (this.menRemaining <= 0) {
       // Level Cleared!
       this.state = 'LEVEL_CLEAR';
-      this.playLevelClearFanfare();
+      this.soundChip.playLevelClearFanfare();
 
       // Write "GRID X CLEARED" at top row (high contrast yellow on blue background box)
       const clearStr = `GRID ${this.gridLevel} CLEARED`;
@@ -497,7 +591,7 @@ class GridBikeGame {
 
   handleCrash() {
     this.state = 'GAME_OVER';
-    this.playCrashSound();
+    this.soundChip.playCrashExplosion();
 
     if (this.score > this.highScore) {
       this.highScore = this.score;
@@ -616,10 +710,13 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btnSound').addEventListener('click', (e) => {
-    gameInstance.soundEnabled = !gameInstance.soundEnabled;
-    e.currentTarget.innerHTML = gameInstance.soundEnabled 
-      ? '🔊 SOUND: ON' 
-      : '🔇 SOUND: OFF';
+    gameInstance.soundChip.isMuted = !gameInstance.soundChip.isMuted;
+    if (gameInstance.soundChip.isMuted) {
+      gameInstance.soundChip.silenceAll();
+    }
+    e.currentTarget.innerHTML = gameInstance.soundChip.isMuted 
+      ? '🔇 SOUND: OFF' 
+      : '🔊 SOUND: ON';
   });
 
   document.getElementById('btnCrt').addEventListener('click', (e) => {
