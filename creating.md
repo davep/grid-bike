@@ -141,15 +141,23 @@ Line 104 in David's code executes:
 
 ## Act VI: Asset Organization, Documentation & Polish
 
-### 💬 Prompts 7, 8 & 9
+### 💬 Prompts 7 & 8
 > *"I moved the original scans into @original -- update the links to them please"*  
-> *"Create a README.md"*  
-> *"Please also create a creating.md which documents the process we've followed here. Record my prompts and then the work you did. I want to turn this into a blog post in the near future."*
+> *"Create a README.md"*
 
 ### 🛠️ Work Done
 - Updated file paths in `index.html` and documentation to point to `original/grid-bike-page-1.jpg` and `original/grid-bike-page-2.jpg`.
 - Created comprehensive [`README.md`](README.md) containing repository guide, controls, CBM BASIC source code, and VIC sound formulas.
-- Created this [`creating.md`](creating.md) document to archive the prompt history, technical analysis, and development journey for blog publication.
+
+---
+
+## Act VII: Agent Guidelines & Mandatory Documentation Directive
+
+### 💬 Prompt 9
+> *"Create an AGENTS.md. As well as adding all the usual helpful things, also record in there that it's important and mandatory that @creating.md gets updated any time we make a change."*
+
+### 🛠️ Work Done
+- Created [`AGENTS.md`](AGENTS.md) specifying repository structure, hardware emulation formulas, character bitmask standards, and establishing the mandatory directive that [`creating.md`](creating.md) must be updated immediately upon any code or repository modification.
 
 ---
 
@@ -158,5 +166,6 @@ Line 104 in David's code executes:
 - **[`index.html`](index.html):** Main web app with CRT monitor frame, HUD, and magazine archive modal.
 - **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 memory RAM simulation, and `Vic20SoundChip` emulator.
 - **[`style.css`](style.css):** Retro arcade CRT styling and responsive controls layout.
-- **[`README.md`](README.md):** Repository user guide and technical summary.
-- **[`creating.md`](creating.md):** Detailed development blog post draft.
+- **[`README.md`](README.md):** User-facing repository overview and technical summary.
+- **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
+- **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
