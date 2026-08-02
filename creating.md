@@ -166,35 +166,38 @@ Line 104 in David's code executes:
 ### 💬 Prompt 10
 > *"You've added a touch pad for playing on mobile devices, but it's way off the screen on my iPhone (for example). Can you ensure that, on tablets and phones, the d-pad is visible while keeping the game grid visible, and that it works. Also keep in mind the questions the game asks the user. They will need to be able to answer them too."*
 
-### 🔍 Technical Analysis & Debugging
-1. **Viewport & Layout Overflow:**
-   - On narrow mobile viewports (e.g. iPhone 375px–430px width), the CRT monitor and fixed canvas dimensions pushed the Touch D-Pad card down past the fold into a long scrollable column. Players could not see the canvas grid and tap controls at the same time.
-2. **Touch Screen Prompt Answering:**
-   - The Vic-20 BASIC program prompts the player at several stages:
-     - Loader Screen: `"PRESS ANY KEY"` (Line 5170)
-     - Difficulty Prompt: `"DO YOU WANT EASY (1) OR HARD (2)?"` (Line 2)
-     - Crash Screen: `"PRESS KEY TO RESTART"`
-   - Touchscreen users needed clear on-screen touch controls to answer these prompts without needing a physical keyboard.
+### 🛠️ Work Done
+- Restructured `index.html` and `style.css` so `.mobile-controller` is positioned directly beneath `.crt-container`.
+- Added prompt action buttons `[ 1: EASY ]`, `[ 2: HARD ]` and updated event listeners so tapping the canvas or D-Pad advances screens and answers prompts.
+
+---
+
+## Act IX: Zero-Scroll `100dvh` Mobile Viewport Optimization
+
+### 💬 Prompt 11
+> *"That's close, but the header pushes things down a bit and the user needs to scroll down. Is there a way to make this work in the browser where the user can play the game without needing to scroll down?"*
+
+### 🔍 Technical Rationale & Viewport Budgeting
+On mobile viewports (e.g. 667px–844px height smartphones), fixed canvas dimensions and vertical header padding caused content to overflow past `100dvh`, forcing vertical page scrolling to reach the D-Pad.
 
 ### 🛠️ Work Done
-- **Mobile Controller Bar (`index.html` & `style.css`):**
-  - Moved `.mobile-controller` directly beneath `.crt-container` in the HTML flow.
-  - Added responsive scaling (`#gameCanvas { max-width: 100%; height: auto !important; }`) so the CRT monitor and D-Pad fit on mobile screens simultaneously without scrolling.
-- **Dedicated Prompt Action Buttons:**
-  - Added touch action buttons `[ 1: EASY ]`, `[ 2: HARD ]`, and `[ ▶ START / RESTART ]` right above the D-Pad.
-- **Interactive Event Handling (`game.js`):**
-  - Updated `handleScreenTap()` and `handleDpadInput()` in `game.js`:
-    - Tapping the canvas or any D-Pad button advances `"PRESS ANY KEY"` and restarts on `"GAME OVER"`.
-    - Tapping `1: EASY` or `2: HARD` (or using D-Pad Up/Left vs Down/Right) answers the difficulty prompt directly.
+- **Strict `100dvh` Zero-Scroll Layout (`style.css`):**
+  - Set `html, body { height: 100dvh; max-height: 100dvh; overflow: hidden; }` for screen widths `<= 768px`.
+  - Compacted the header title bar and hid non-essential subtitles on mobile.
+  - Set `#gameCanvas` to `max-height: 40vh` with responsive `object-fit: contain` so the canvas screen dynamically adjusts to fit the viewport alongside the HUD and D-Pad.
+  - Hid desktop-only side panels and footer on mobile to conserve 100% of vertical pixel space.
+- **Mobile Archive Access (`index.html` & `game.js`):**
+  - Integrated a compact `[ 📜 CODE ]` button into the mobile prompt action bar so mobile users can open the original magazine scans and BASIC disassembly modal without needing desktop side panels.
 
 ---
 
 ## Summary of Completed Files
 
-- **[`index.html`](index.html):** Main web app with CRT monitor frame, responsive mobile controller bar, HUD, and magazine archive modal.
+- **[`index.html`](index.html):** Main web app with CRT monitor frame, zero-scroll mobile controller bar, HUD, and magazine archive modal.
 - **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
-- **[`style.css`](style.css):** Retro arcade CRT styling, mobile-first responsive layout, and D-Pad styles.
+- **[`style.css`](style.css):** Retro arcade CRT styling, zero-scroll `100dvh` mobile responsive layout, and D-Pad styles.
 - **[`README.md`](README.md):** User-facing repository overview and technical summary.
 - **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
 - **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+
 

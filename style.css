@@ -560,36 +560,160 @@ footer a {
   text-decoration: none;
 }
 
-/* Responsive Mobile & Tablet Adjustments */
+/* Responsive Mobile & Tablet Adjustments - Zero Scroll Layout */
 @media (max-width: 768px) {
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   body {
-    padding: 10px 6px;
+    padding: 6px 4px;
+    justify-content: flex-start;
+    gap: 4px;
   }
+
   header {
-    margin-bottom: 12px;
+    margin-bottom: 2px;
+    width: 100%;
   }
+
+  .title-container {
+    gap: 8px;
+    margin-bottom: 0;
+  }
+
+  .vic-badge {
+    font-size: 0.55rem;
+    padding: 2px 6px;
+  }
+
   h1 {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
   }
-  .crt-container {
-    padding: 10px;
-    border-width: 6px;
-    border-radius: 18px;
-    width: 100%;
-    max-width: 420px;
+
+  .subtitle {
+    display: none; /* Hide subtitle on mobile to save vertical pixels */
   }
-  .screen-frame {
-    padding: 8px;
-    width: 100%;
+
+  main {
+    flex: 1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    overflow: hidden;
   }
+
+  .workspace-layout {
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+  }
+
+  .crt-container {
+    padding: 6px;
+    border-width: 4px;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 400px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+  }
+
+  .monitor-top-bar {
+    margin-bottom: 4px;
+    padding: 0 4px;
+  }
+
+  .brand-label {
+    font-size: 0.55rem;
+  }
+
+  .power-indicator {
+    font-size: 0.65rem;
+  }
+
+  .screen-frame {
+    padding: 4px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 0; /* Allows canvas to shrink if needed */
+  }
+
   #gameCanvas {
     max-width: 100%;
+    max-height: 40vh; /* Keeps canvas strictly constrained inside mobile viewport */
+    width: auto;
     height: auto !important;
+    aspect-ratio: 352 / 368;
+    object-fit: contain;
   }
+
+  .hud-panel {
+    margin-top: 4px;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    border-radius: 6px;
+  }
+
+  .hud-label {
+    font-size: 0.5rem;
+  }
+
+  .hud-value {
+    font-size: 0.75rem;
+  }
+
+  .mobile-controller {
+    margin-top: 6px;
+    padding: 6px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+
+  .prompt-action-bar {
+    gap: 6px;
+  }
+
+  .btn-action {
+    font-size: 0.65rem;
+    padding: 6px 10px;
+    min-width: 80px;
+  }
+
+  .touch-dpad-container {
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .dpad-row {
+    gap: 6px;
+  }
+
+  .dpad-btn {
+    width: 46px;
+    height: 46px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+
   .side-panel {
-    width: 100%;
-    max-width: 420px;
+    display: none; /* Hide desktop side cards on mobile screen to prevent vertical scroll */
+  }
+
+  footer {
+    display: none; /* Hide footer on mobile screens to ensure zero scroll */
   }
 }

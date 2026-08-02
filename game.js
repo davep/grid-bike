@@ -765,17 +765,9 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (btnStartPrompt) {
-    btnStartPrompt.addEventListener('pointerdown', () => {
-      gameInstance.soundChip.ensureAudioContext();
-      if (gameInstance.state === 'LOADER' || gameInstance.state === 'GAME_OVER') {
-        gameInstance.showDifficultyPrompt();
-      } else if (gameInstance.state === 'DIFFICULTY') {
-        gameInstance.startNewGame(1);
-      } else {
-        gameInstance.showDifficultyPrompt();
-      }
-    });
+  const btnMobileCode = document.getElementById('btnMobileCode');
+  if (btnMobileCode) {
+    btnMobileCode.addEventListener('click', () => openModal('code'));
   }
 
   // Touch D-Pad Controls (Works for both gameplay and prompt answering)
