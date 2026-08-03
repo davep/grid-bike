@@ -289,16 +289,53 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 
 ---
 
+## Act XV: Direct Cassette Tape De-Tokenization (`tape-image/grid-bike.t64`)
+
+### 💬 Prompt 17
+> *"Are you able to recover the original source for the game from @[tape-image/grid-bike.t64]"*
+
+### 🔍 Technical Rationale & T64 De-tokenization Architecture
+1. **T64 Binary Container Analysis:**
+   - The T64 file format (Commodore 64/VIC-20 tape image) contains a 64-byte tape header (`C64S tape image file`) followed by 32-byte directory entries.
+   - Header title: `PCNEWS 83-12-21` (Published on *Popular Computing Weekly / PCN* tape release, Dec 21, 1983).
+   - Directory contents:
+     - Entry 1: `GRID BIKE` (Load Addr `$1001`, End `$13F6`, Data offset `0x00A0` / 160).
+     - Entry 2: `GRID2` (Load Addr `$1001`, End `$1684`, Data offset `0x0495` / 1173).
+2. **CBM BASIC V2 Token Decoding:**
+   - Evaluated PETSCII control codes (e.g., `0x9F` = `{CYAN}`, `0x05` = `{WHITE}`, `0x1C` = `{RED}`, `0x12` = `{RVON}`) and byte stream pointers.
+   - De-tokenized the exact, bit-for-bit BASIC listings for both files directly from the 1983 cassette binary payload.
+3. **Discovered Variations from Printed Scans:**
+   - **`GRID BIKE` (Part 1 Loader):**
+     - Line `5020`: `PRINT"      {RVON} GRID BIKE "`
+     - Line `5170`: `PRINT"{CYAN}     PRESS ANY KEY"`
+     - Line `5175`: `PRINT"{WHITE}{DOWN}BY D.PEARSON"`
+     - Line `5300`: `PRINT"{HOME}{CYAN}{DOWN}{DOWN}{DOWN}{DOWN}{DOWN}{DOWN}LO"+CHR$(34)+"GRID2"+CHR$(34)+",";PEEK(186);"{HOME}{DOWN}{DOWN}{DOWN}{DOWN}";` (Dynamic tape drive unit number lookup using `PEEK(186)`!).
+     - Line `5400`: `POKE631,13:POKE632,82:POKE633,117:POKE634,13:POKE198,4:NEW` (Keyboard buffer auto-load POKEs).
+   - **`GRID2` (Part 2 Main Game):**
+     - Line `0`: `0 QWE=RND(1-TI)` (RND seed initialization).
+     - Line `2`: `PRINT"{CLR}{WHITE}DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})":INPUTTYU`
+     - Line `4000-4055`: Noise explosion effect sweeping frequency register `36877`: `POKE 36877, QW` with step `QW = QW + 5`.
+     - Line `4070-4220`: High score tracking (`YOUR SCORE= SC`, `HIGH SCORE= HS`), replay option (`ANOTHER GAME(Y/N)`), and mode selection restart.
+     - Line `6100-6130`: Level clear message `GRID X CLEARED` with stage score bonuses (`SC = SC + 100`) and man counter increment (`MAN = MAN + 1`).
+
+### 🛠️ Work Done
+- Successfully recovered 100% authentic CBM BASIC V2 source code directly from [`tape-image/grid-bike.t64`](tape-image/grid-bike.t64).
+- Synchronized recovered source code into [`grid-bike-loader.bas`](grid-bike-loader.bas), [`grid-bike-1.bas`](grid-bike-1.bas), [`grid-bike-game.bas`](grid-bike-game.bas), and [`grid-bike-2.bas`](grid-bike-2.bas).
+
+---
+
 ## Summary of Completed Files
 
 - **[`index.html`](index.html):** Main web app with CRT monitor frame, safe-area mobile controller bar, HUD, and magazine archive modal.
 - **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
 - **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
-- **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader.
-- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Complete with exact line numbers 4000–4220).
+- **[`tape-image/grid-bike.t64`](tape-image/grid-bike.t64):** Authentic 1983 PCNEWS Vic-20 cassette tape image container.
+- **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader (Recovered from T64).
+- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Recovered from T64 with exact lines 0–6130, sound effects & high scores).
 - **[`README.md`](README.md):** User-facing repository overview and technical summary.
 - **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
 - **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+
 
 
 
