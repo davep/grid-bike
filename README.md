@@ -67,7 +67,14 @@ Then visit **[http://localhost:8080](http://localhost:8080)** in your browser!
 
 ## 💻 Vic-20 CBM BASIC Source Code
 
-Disassembled directly from the December 15–21, 1983 publication of *Popular Computing Weekly / PCN* (Pages 83 & 85):
+Disassembled directly from the December 15–21, 1983 publication of *Popular Computing Weekly / PCN* (Pages 83 & 85).
+
+The game is split into two standalone Commodore BASIC `.bas` files:
+- **Part 1 Loader Program:** [`grid-bike-loader.bas`](grid-bike-loader.bas) (or [`grid-bike-1.bas`](grid-bike-1.bas)) — Loads custom graphics bitmasks, sets colors, prints instructions, and auto-chains into Part 2 via keyboard buffer POKEs (`POKE 198,7`).
+- **Part 2 Main Game Program:** [`grid-bike-game.bas`](grid-bike-game.bas) (or [`grid-bike-2.bas`](grid-bike-2.bas)) — Initializes grid matrix, places stranded men, handles light-cycle movement, collision checks, corner turn logic, and stage clearing.
+
+### Complete Combined Listing:
+
 
 ```basic
 1000 POKE52,28:POKE56,28:CLR
@@ -151,6 +158,22 @@ Disassembled directly from the December 15–21, 1983 publication of *Popular Co
 3060 IFOD=-1ANDD=-22THENNW=3:WT=8
 3070 IFOD=-1ANDD=22THENNW=3:WT=5
 3080 GOTO180
+
+4000 POKE36878,0:POKE36874,0:POKE36875,0:POKE36876,0
+4010 POKE36877,240:POKE36878,15:FORN=1TO300:NEXT:POKE36877,0:POKE36878,0
+4020 PRINT"{CLR}{RED}      GAME OVER"
+4030 PRINT"{DOWN}{WHITE}    PRESS ANY KEY"
+4040 GETA$:IFA$=""THEN4040
+4050 GOTO1
+
+6100 MAN=MAN-1
+6110 POKE36876,240:FORN=1TO50:NEXT:POKE36876,248:FORN=1TO50:NEXT
+6120 POKE36874,196:POKE36875,196:POKE36876,176
+6130 IFMAN>0THEN103
+6140 GRID=GRID+1:MAN=GRID
+6150 PRINT"{CLR}{WHITE}   GRID ";GRID-1;" CLEARED"
+6160 FORN=1TO1500:NEXT
+6170 GOTO50
 ```
 
 ---

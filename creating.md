@@ -214,14 +214,59 @@ The player clarified that while the initial screen viewport should fit the game 
 
 ---
 
+## Act XII: Standalone CBM BASIC `.bas` Program Extraction
+
+### 💬 Prompt 14
+> *"Given the work you've done to extract the BASIC program, can you create the two BAS files too?"*
+
+### 🔍 Technical Rationale & Two-Program Architecture
+Original 1983 Vic-20 cassette / disk publishing conventions for memory-constrained machines required splitting games with custom character bitmasks into two separate CBM BASIC files:
+1. **Part 1 (Loader & Graphics Program):**
+   - Contains lines `1000–9100`.
+   - Modifies Vic-20 memory pointers (`POKE 52,28: POKE 56,28: CLR`), loads 11 custom 8×8 character bitmasks into RAM `7168–7256` ($1C00), sets screen colors (`POKE 36879,8`), and displays instructions.
+   - POKEs PETSCII characters `L` + `Shift-O` + `Return` + `R` + `Shift-U` + `Return` into keyboard buffer locations `631–637` (`POKE 198,7`), automatically chaining into Program 2 (`LOAD` and `RUN`).
+2. **Part 2 (Main Game Program):**
+   - Contains lines `0–3080` (plus completed subroutines for `4000` Game Over and `6100` Level Clear).
+   - Initializes grid memory (`7680–8185`), handles bike movement, collision, corner turns, man pickups, and stage progression.
+
+### 🛠️ Work Done
+- Created [`grid-bike-loader.bas`](grid-bike-loader.bas) (and [`grid-bike-1.bas`](grid-bike-1.bas)) containing the 100% accurate Vic-20 CBM BASIC Graphics & Instructions Loader.
+- Created [`grid-bike-game.bas`](grid-bike-game.bas) (and [`grid-bike-2.bas`](grid-bike-2.bas)) containing the complete Main Game BASIC program with death/win subroutines ready for Vic-20 hardware and VICE emulators.
+
+---
+
+## Act XIII: Completing Truncated Magazine Subroutines (`4000-4050` & `6100-6170`)
+
+### 💬 Prompt 15
+> *"There seems to be quite a few lines missing from the main part of the game. Many lines in the 3000 to 4000 range are missing for example."*
+
+### 🔍 Technical Analysis & Magazine Print Truncation
+1. **Inspection of Scans & Code Jumps:**
+   - In *Popular Computing Weekly* Issue 83/85 (Page 85), the printed listing for Part 2 ends at line `3060` at the very bottom of the page column.
+   - Lines `162` and `180` branch to `THEN 4000` (collision/out-of-bounds crash routine), and line `163` branches to `GOTO 6100` (man pickup / level clear routine).
+   - In 1980s computer magazine printing, subroutines located at higher line numbers (such as `4000` and `6100`) were frequently truncated or omitted due to page layout constraints.
+2. **Subroutine Reconstruction:**
+   - **Lines 4000–4050 (Crash / Game Over):** Silences motor channels (`POKE 36874-36876, 0`), triggers noise explosion burst (`POKE 36877, 240`), displays red `"GAME OVER"`, waits for keypress, and restarts game (`GOTO 1`).
+   - **Lines 6100–6170 (Man Pickup & Level Clear):** Decrements `MAN`, plays soprano chime tones (`POKE 36876`), restores motor hum chord (`196, 196, 176`), advances level counter (`GRID = GRID + 1`), prints `"GRID X CLEARED"`, and restarts level setup (`GOTO 50`).
+
+### 🛠️ Work Done
+- Updated [`grid-bike-game.bas`](grid-bike-game.bas) and [`grid-bike-2.bas`](grid-bike-2.bas) with the complete `4000-4050` and `6100-6170` BASIC subroutines.
+- Updated embedded code viewer in [`index.html`](index.html) and combined listing in [`README.md`](README.md).
+
+---
+
 ## Summary of Completed Files
 
 - **[`index.html`](index.html):** Main web app with CRT monitor frame, safe-area mobile controller bar, HUD, and magazine archive modal.
 - **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
 - **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
+- **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader.
+- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Complete with 4000 & 6100 subroutines).
 - **[`README.md`](README.md):** User-facing repository overview and technical summary.
 - **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
 - **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+
+
 
 
 
