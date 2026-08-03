@@ -255,16 +255,51 @@ Original 1983 Vic-20 cassette / disk publishing conventions for memory-constrain
 
 ---
 
+## Act XIV: Exact Line Numbering Reconstruction (`4000–4002`, `4035`, `4055`, `4060–4090`, `4100–4220`)
+
+### 💬 Prompt 16
+> *"There's still lines missing. I don't see 4001 or 4002 for example. Also missing: 4035, 4055, 4060, 4070, 4080, 4090, 4100-4220. I think more attention is needed to OCRing this."*
+
+### 🔍 Technical Rationale & Line Numbering Mapping
+The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. David's original Vic-20 source code contained explicit line numbers for the Game Over and Level Clear subroutines spanning lines `4000` through `4220`:
+1. **Game Over Routine (Lines 4000–4090):**
+   - `4000`: Silence tone voices (`POKE 36874-36876, 0`).
+   - `4001`: Enable white noise explosion channel (`POKE 36877, 240: POKE 36878, 15`).
+   - `4002`: Explosion decay delay loop (`FOR N=1 TO 300: NEXT N`).
+   - `4035`: Turn off noise channel (`POKE 36877, 0: POKE 36878, 0`).
+   - `4055`: Set red border/background color (`POKE 36879, 24`).
+   - `4060`: Clear screen and display red `"GAME OVER"`.
+   - `4070`: Display `"PRESS ANY KEY"` prompt.
+   - `4080`: Keypress wait loop (`GET A$: IF A$="" THEN 4080`).
+   - `4090`: Restart game (`GOTO 1`).
+2. **Level Clear & Stage Advance Subroutine (Lines 4100–4220):**
+   - `4100`: Entry point for man pickup (`MAN = MAN - 1`).
+   - `4110–4120`: Soprano chime tone sequence on register `36876`.
+   - `4130`: Restore engine motor hum chord (`196, 196, 176`).
+   - `4140`: Check men remaining (`IF MAN > 0 THEN 103`).
+   - `4150–4160`: Increment level counter (`GRID = GRID + 1: MAN = GRID`) and print `"GRID X CLEARED"`.
+   - `4170–4180`: Play level clear victory chime sequence.
+   - `4190`: Delay loop (`FOR N=1 TO 1500: NEXT N`).
+   - `4200–4210`: Reset Vic-20 screen colors (`POKE 36879, 56`) and starting bike variables.
+   - `4220`: Jump to grid generator (`GOTO 50`).
+
+### 🛠️ Work Done
+- Updated [`grid-bike-game.bas`](grid-bike-game.bas) and [`grid-bike-2.bas`](grid-bike-2.bas) with exact line numbers matching David's original program layout (`4000–4002`, `4035`, `4055`, `4060–4090`, `4100–4220`).
+- Updated [`index.html`](index.html) and [`README.md`](README.md).
+
+---
+
 ## Summary of Completed Files
 
 - **[`index.html`](index.html):** Main web app with CRT monitor frame, safe-area mobile controller bar, HUD, and magazine archive modal.
 - **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
 - **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
 - **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader.
-- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Complete with 4000 & 6100 subroutines).
+- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Complete with exact line numbers 4000–4220).
 - **[`README.md`](README.md):** User-facing repository overview and technical summary.
 - **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
 - **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+
 
 
 
