@@ -324,10 +324,35 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 
 ---
 
+## Act XVI: JavaScript Engine Alignment with Recovered Cassette Tape Mechanics & Layout
+
+### 💬 Prompt 18
+> *"Now that we've improved our understanding of the original source, improving the source from the tape archive, make any required changes to the JavaScript version of the game to get the same game grid layout, text, colours, etc. Also the exact same mechanics."*
+
+### 🔍 Technical Rationale & Gameplay Synchronization
+1. **Title & Difficulty Screens (`game.js`):**
+   - **`showLoaderScreen()`:** Updated to use exact PETSCII color formatting: Black background (`#000000`), White instructions text, Cyan (`#00e0e0`) for `"PRESS ANY KEY"`, and Reverse Yellow title banner (`"      GRID BIKE "`).
+   - **`showDifficultyPrompt()`:** Updated text to match Line 2: `DO YOU WANT EASY(1) OR HARD (2)` with `(1)` and `(2)` highlighted in Red (`#dd0000`).
+2. **Obstacle Placement & Stage Progression:**
+   - **Hard Mode Obstacles:** Fixed obstacle count to strictly 10 blocks (`FOR N=1 TO 10`), matching BASIC Line 101.
+   - **Stage Progression & Men Counter:**
+     - Level 1 starts with 1 man (`MAN = 1`). Clearing the grid increments `MAN = MAN + 1` (Level 2 = 2 men, Level 3 = 3 men, etc.).
+     - Scoring: Each man collected adds **10 points** (`SC = SC + 10`). Level clear adds **100 bonus points** (`SC = SC + 100`).
+3. **Sound Effects & Crash Animations:**
+   - **Explosion Noise Sweep:** Recreated lines 4001-4050 in `Vic20SoundChip`: sweeps noise frequency register `36877` from pitch `128` to `163` (`QW = QW + 5`) across 10 flash steps, while flashing the crash cell (`A - D`) across palette colors 0 to 7.
+4. **Game Over & Replay Screen:**
+   - Displays `YOUR SCORE= SC`, `HIGH SCORE= HS`, and `ANOTHER GAME(Y/N)` in exact VIC-20 font/color formatting.
+
+### 🛠️ Work Done
+- Updated [`game.js`](game.js) with accurate VIC-20 screen colors, menu prompts, man progression, scoring rules, explosion sweep audio, and Game Over replay logic.
+- Updated [`index.html`](index.html) modal source code block.
+
+---
+
 ## Summary of Completed Files
 
 - **[`index.html`](index.html):** Main web app with CRT monitor frame, safe-area mobile controller bar, HUD, and magazine archive modal.
-- **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
+- **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, authentic menu colors, and `Vic20SoundChip` emulator.
 - **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
 - **[`tape-image/grid-bike.t64`](tape-image/grid-bike.t64):** Authentic 1983 PCNEWS Vic-20 cassette tape image container.
 - **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader (Recovered from T64).
@@ -335,6 +360,7 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 - **[`README.md`](README.md):** User-facing repository overview and technical summary.
 - **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
 - **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+
 
 
 
