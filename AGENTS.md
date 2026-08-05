@@ -2,20 +2,6 @@
 
 > **Guidelines and Repository Architecture for AI Coding Assistants working on Grid Bike.**
 
----
-
-## 🚨 MANDATORY DIRECTIVE FOR ALL AGENTS
-
-> [!IMPORTANT]
-> **CRITICAL & MANDATORY:** Any time ANY modification, bug fix, feature addition, asset relocation, or refactoring is performed in this repository, **[`creating.md`](creating.md) MUST BE UPDATED IMMEDIATELY**.
-> 
-> `creating.md` serves as the official, living development log and blog post draft for this project. Every change must record:
-> 1. The user request / prompt.
-> 2. Root cause analysis & technical rationale.
-> 3. Specific code changes, hardware calculations, or design decisions made.
-
----
-
 ## 📌 Repository Overview
 
 **Grid Bike** is a standalone JavaScript and HTML5 Canvas recreation of a 1983 Commodore Vic-20 arcade game written by **David Pearson of York** and published in *Popular Computing Weekly / PCN* (Issue 83/85, Dec 15–21, 1983).
