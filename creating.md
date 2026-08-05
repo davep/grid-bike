@@ -462,3 +462,24 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 ### 🛠️ Work Done
 - Updated `printPetscii()` in [`game.js`](game.js) to enforce automatic cancellation of reverse video mode at newline and screen clear boundaries.
 - Verified that only `" GRID BIKE "` renders with the Reverse White box, and all instruction lines (Rows 2 to 19) render in Normal Video (White/Cyan text on Black background).
+
+---
+
+## Act XXII: Original CBM BASIC Source Code Verification of Bike Trail Color
+
+### 💬 Prompt 24
+> *"Can you review the original source code and confirm the colour of the trail of the bike?"*
+
+### 🔍 Deep Technical Analysis of `grid-bike-2.bas` Line 103
+1. **Grid Color RAM Initialization (Line 80):**
+   - `80 FOR N=38400 TO 38905: POKE N, 6: NEXT` fills all 506 cells of VIC-20 Color RAM with **Color 6 (BLUE)**.
+
+2. **Bike Movement & Color RAM Preservation (Line 103):**
+   - `103 POKE A, CH : POKE A+30720, 2 : POKE A+(-D), WT`
+   - When the bike head moves into position `A`, `POKE A+30720, 2` explicitly sets Color RAM at `A` to **Color 2 (RED)**.
+   - On the next game tick, as the bike head advances to the next cell ($A_{\text{new}}$), line 103 POKEs the trail character `WT` into the previous position ($A_{\text{old}} = A_{\text{new}} - D$).
+   - **Crucially, line 103 does NOT overwrite Color RAM for $A_{\text{old}}$**. The Color RAM at $A_{\text{old}}$ remains **Color 2 (RED)** from when the bike head occupied that cell on the previous tick.
+   - Consequently, every trail segment left behind by the bike retains **Color 2 (RED)**.
+
+### 🛠️ Work Done
+- Updated `gameTick()` in [`game.js`](game.js) (`this.pokeColor(prevCell, 2)`), confirming and rendering the bike trail in **RED** (`#dd0000`), 100% faithful to David Pearson's 1983 BASIC source code.

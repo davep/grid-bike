@@ -530,7 +530,7 @@ class GridBikeGame {
     const prevCell = this.A - this.D;
     if (this.peek(prevCell) !== 9 && this.peek(prevCell) !== 230) {
       this.poke(prevCell, this.WT);
-      this.pokeColor(prevCell, 6); // Blue trail
+      this.pokeColor(prevCell, 2); // Red trail (Line 103: retains Color 2 from previous bike head!)
     }
 
     // 2. Line 104: POKE 36874,196 : POKE 36875,196 : POKE 36876,176 (Exact Vic-20 motor chord POKEs!)
