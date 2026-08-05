@@ -356,16 +356,17 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 - **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
 - **[`tape-image/grid-bike.t64`](tape-image/grid-bike.t64):** Authentic 1983 PCNEWS Vic-20 cassette tape image container.
 - **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader (Recovered from T64).
-- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Recovered from T64 with exact lines 0–6130, sound effects & high scores).
-- **[`README.md`](README.md):** User-facing repository overview and technical summary.
-- **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
-- **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+## Act XVII: Escaping HTML Entities in BASIC Code Listing Modal
 
+### 💬 Prompt 19
+> *"the basic source, when included in the site, seems to not escape HTML entiries. This is resulting in truncated lines and code."*
 
+### 🔍 Technical Rationale & Root Cause Analysis
+1. **HTML Parser Tag Interpretation:**
+   - In [`index.html`](index.html), the BASIC source code listing within `<pre class="code-block">` contained unescaped `<` (less than) and `>` (greater than) comparison operators.
+   - For example, BASIC line 3 contained `IFTYU<1ORTYU>2THEN2`. The browser HTML parser interpreted `<1ORTYU>` as an unknown HTML element/tag and suppressed it from rendering, resulting in truncated display `3 IFTYU 2THEN2`.
+   - Similarly, lines containing `PEEK(RP)<>2`, `IFPEEK(A)>2ANDPEEK(A)<10`, `IFA<7680ORA>8185`, `IFSC>HS`, `IFTYU<1ORTYU>2`, and `IFDF<MAN` were truncated when parsed as HTML.
 
-
-
-
-
-
-
+### 🛠️ Work Done
+- Escaped all comparison operators (`<` to `&lt;`, `>` to `&gt;`, `<>` to `&lt;&gt;`) within the `<pre class="code-block">` section in [`index.html`](index.html).
+- Verified that all Vic-20 BASIC source code lines render completely without truncation.
