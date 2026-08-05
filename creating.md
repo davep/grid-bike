@@ -392,3 +392,73 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 - Implemented `printText(str, row, col, defaultColor, colorMap)` in [`game.js`](game.js), providing sequential RAM indexing that automatically wraps past column 21 onto column 0 of subsequent rows.
 - Refactored `showDifficultyPrompt()`, `showLoaderScreen()`, `showGameOverScreen()`, and `handleManCollected()` in [`game.js`](game.js) to utilize `printText()`.
 - Verified that 31-character menu prompts and all screen text render with authentic 22-column line wrapping.
+
+---
+
+## Act XIX: 100% Authentic PETSCII Color, Position & VIC-20 POKE Register Alignment
+
+### 💬 Prompt 21
+> *"Now that we have the actual source to hand, as lifted from tape, can we also ensure that the actual position of text is correct, and also that all colours are correct too? Ensure to research what each of the colour and position codes mean in the basic source code and make sure that the result in the game reflects my original intent and choices, back in 1983."*
+
+### 🔍 Research & Hardware Register Analysis
+1. **VIC-20 Screen & Border Color Register (`POKE 36879` / `$900F`):**
+   - **`POKE 36879, 8` (Loader Line 5010 & Game Over Line 4090):** High nibble `0` (Black background), Low nibble `0` (Black border). Menus and instruction screens render on a solid Black canvas.
+   - **`POKE 36879, 56` (Gameplay Line 45):** Value `56` (`0x38`) = High nibble `3` (Cyan background), Bit 3 `1` (Normal mode), Low nibble `0` (Black border). The gameplay screen background is Cyan (`#00e0e0`), while grid lines and trail are Blue (6), bike head is Red (2), obstacles are Black (0), and border wall is Black (0).
+
+2. **PETSCII Reverse Video (`{RVON}` / `CHR$(18)`) Mechanics:**
+   - In CBM BASIC, `{RVON}` inverts the foreground and background colors of character cells.
+   - **Title Banners (Lines 5020 & 4100):** `{WHITE}` + `{RVON}` produces Reverse White on Black (solid White box cells with Black text).
+   - **Level Cleared Banner (Lines 6110 & 6120):** `{BLACK}` + `{RVON}` produces Reverse Black on Cyan (solid Black box cells with Cyan text).
+
+3. **Text Positioning & Color Code Mapping:**
+   - **Line 2 Loader Difficulty Prompt:** `DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})` starting at Row 0 Col 0 after `{CLR}`, wrapping to Row 1 Col 0 with Red `1` and `2`.
+   - **Line 5170 Loader Prompt:** `PRINT"{CYAN}     PRESS ANY KEY"` on Row 17 Col 0 in Cyan (3).
+   - **Line 5175 Loader Byline:** `PRINT"{WHITE}{DOWN}BY D.PEARSON"` on Row 19 Col 0 in White (1).
+   - **Line 4200 Game Over Difficulty Re-prompt:** `DO YOU WANT ({YELLOW}1{WHITE})EASY OR ({YELLOW}2{WHITE})HARD` with Yellow `1` and `2`.
+
+### 🛠️ Work Done
+- Updated `render()` in [`game.js`](game.js) to set Cyan screen background (`VIC_COLORS[3]`, `#00e0e0`) during gameplay (`POKE 36879, 56`) and Black background (`VIC_COLORS[0]`, `#000000`) on menu screens (`POKE 36879, 8`).
+- Updated `drawCharacter()` in [`game.js`](game.js) to evaluate bit 7 (`0x80`) of `colorRAM` as PETSCII `{RVON}` reverse video, swapping cell background and foreground text colors.
+- Synchronized `showLoaderScreen()`, `showDifficultyPrompt()`, `showGameOverScreen()`, and `handleManCollected()` in [`game.js`](game.js) with 100% accurate PETSCII positions, colors, and reverse video flags.
+
+---
+
+## Act XX: Inline PETSCII Control Stream Parser & Title Banner Alignment Fix
+
+### 💬 Prompt 22
+> *"On the instruction screen, the white background of the "GRID BIKE" title starts at the start of the line, but I don't think it's supposed to. Please review the order in which colour and position are applied."*
+
+### 🔍 PETSCII Control Stream Rationale & Alignment Analysis
+1. **Line 5020 Character Sequence (`PRINT"      {RVON} GRID BIKE "`):**
+   - In Commodore BASIC line 5020, 6 leading spaces (`"      "`) are output to screen RAM before the `{RVON}` (Reverse Video ON, `CHR$(18)`) control code is encountered.
+   - The first 6 character cells (Columns 0 to 5) are printed in Normal Video on a Black background.
+   - `{RVON}` turns on Reverse Video at character index 6, causing only `" GRID BIKE "` (Columns 6 to 16) to render with the Reverse White background box.
+
+2. **Inline PETSCII Control Code Interpreter:**
+   - Replaced static character maps with `printPetscii(str, startRow, startCol, defaultColor)` in [`game.js`](game.js).
+   - `printPetscii` dynamically processes embedded control codes (`{CLR}`, `{HOME}`, `{DOWN}`, `{RIGHT}`, `{RVON}`, `{RVOFF}`, `{WHITE}`, `{CYAN}`, `{RED}`, `{YELLOW}`, `{BLACK}`) in exact character stream order.
+
+### 🛠️ Work Done
+- Implemented `printPetscii()` interpreter in [`game.js`](game.js).
+- Updated `showLoaderScreen()`, `showDifficultyPrompt()`, `showGameOverScreen()`, and `handleManCollected()` to parse exact CBM BASIC PETSCII streams.
+- Verified that the Title Banner White background box starts at Column 6 (after 6 normal Black spaces), matching David Pearson's exact 1983 screen layout.
+
+---
+
+## Act XXI: Automatic PETSCII Reverse Video Cancellation at Line Boundaries
+
+### 💬 Prompt 23
+> *"This change seems to cause the rest of the text to be in reverse video, can you please check how {RVON} worked and how it changed at the end of a line. I'm looking at screenshots of the original game and the reverse seemed to finished at the end of the title."*
+
+### 🔍 CBM BASIC Hardware Specification Rationale
+1. **Commodore BASIC Carriage Return Reverse Video Reset:**
+   - In Commodore CBM BASIC V2 (VIC-20 / C64), printing `{RVON}` (`CHR$(18)`) enables reverse video mode for the current character stream.
+   - However, **reverse video mode is automatically cancelled** by the OS screen editor whenever a carriage return (`CHR$(13)` / newline `\n`), `{CLR}`, or `{HOME}` is printed.
+   - Line 5020 (`PRINT"      {RVON} GRID BIKE "`) enables `{RVON}` only for `" GRID BIKE "`. Upon reaching the end of the `PRINT` line, reverse video is automatically reset to normal mode before line 5030 (`PRINT"{DOWN}YOU ARE THE DRIVER "`) executes.
+
+2. **Fix in JavaScript Engine:**
+   - Updated `printPetscii()` in [`game.js`](game.js) to reset `isReverse = false` whenever `\n`, `{CLR}`, or `{HOME}` is encountered.
+
+### 🛠️ Work Done
+- Updated `printPetscii()` in [`game.js`](game.js) to enforce automatic cancellation of reverse video mode at newline and screen clear boundaries.
+- Verified that only `" GRID BIKE "` renders with the Reverse White box, and all instruction lines (Rows 2 to 19) render in Normal Video (White/Cyan text on Black background).

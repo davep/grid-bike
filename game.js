@@ -331,79 +331,124 @@ class GridBikeGame {
   }
 
   /**
-   * Hardware-accurate PETSCII text printing with automatic 22-column line wrapping.
-   * If text extends beyond column 21 of a row, it automatically wraps around to column 0 of the next row.
+   * Hardware-accurate PETSCII control code & text interpreter.
+   * Parses inline CBM BASIC PETSCII tags like {CLR}, {HOME}, {DOWN}, {RIGHT}, {WHITE}, {RED}, {CYAN}, {YELLOW}, {BLACK}, {RVON}, {RVOFF}.
    */
-  printText(str, row = 0, col = 0, defaultColor = 1, colorMap = null) {
-    let cellIdx = row * this.COLS + col;
-    for (let i = 0; i < str.length; i++) {
-      if (cellIdx >= this.TOTAL_CELLS) break;
-      const charCode = str.charCodeAt(i);
-      this.screenRAM[cellIdx] = charCode;
+  printPetscii(str, startRow = 0, startCol = 0, defaultColor = 1) {
+    let r = startRow;
+    let c = startCol;
+    let currentColor = defaultColor;
+    let isReverse = false;
 
-      let color = defaultColor;
-      if (colorMap && colorMap[i] !== undefined) {
-        color = colorMap[i];
+    let i = 0;
+    while (i < str.length) {
+      if (str[i] === '\n') {
+        r++;
+        c = 0;
+        isReverse = false; // CBM BASIC automatically cancels Reverse Video at newline / carriage return
+        i++;
+        continue;
       }
-      this.colorRAM[cellIdx] = color;
 
-      cellIdx++;
+      if (str[i] === '{') {
+        const closeIdx = str.indexOf('}', i);
+        if (closeIdx !== -1) {
+          const tag = str.substring(i + 1, closeIdx).toUpperCase();
+          i = closeIdx + 1;
+
+          if (tag === 'CLR') {
+            this.screenRAM.fill(32);
+            this.colorRAM.fill(currentColor);
+            r = 0;
+            c = 0;
+            isReverse = false;
+          } else if (tag === 'HOME') {
+            r = 0;
+            c = 0;
+            isReverse = false;
+          } else if (tag === 'DOWN') {
+            r++;
+            c = 0;
+          } else if (tag === 'RIGHT') {
+            c++;
+          } else if (tag === 'RVON') {
+            isReverse = true;
+          } else if (tag === 'RVOFF') {
+            isReverse = false;
+          } else if (tag === 'WHITE' || tag === 'WHT') {
+            currentColor = 1;
+          } else if (tag === 'RED') {
+            currentColor = 2;
+          } else if (tag === 'CYAN' || tag === 'CYN') {
+            currentColor = 3;
+          } else if (tag === 'PURPLE' || tag === 'PUR') {
+            currentColor = 4;
+          } else if (tag === 'GREEN' || tag === 'GRN') {
+            currentColor = 5;
+          } else if (tag === 'BLUE' || tag === 'BLU') {
+            currentColor = 6;
+          } else if (tag === 'YELLOW' || tag === 'YEL') {
+            currentColor = 7;
+          } else if (tag === 'BLACK' || tag === 'BLK') {
+            currentColor = 0;
+          }
+          continue;
+        }
+      }
+
+      // Normal character output
+      let cellIdx = r * this.COLS + c;
+      if (cellIdx < this.TOTAL_CELLS) {
+        this.screenRAM[cellIdx] = str.charCodeAt(i);
+        let color = currentColor;
+        if (isReverse) color |= 0x80;
+        this.colorRAM[cellIdx] = color;
+      }
+
+      c++;
+      if (c >= this.COLS) {
+        c = 0;
+        r++;
+      }
+      i++;
     }
-    return cellIdx;
   }
 
   // --- LOADER & PROMPTS (Strictly matching BASIC lines 5000-5175 & GRID2 Line 2) ---
   showLoaderScreen() {
     this.state = 'LOADER';
-    this.screenRAM.fill(32); // Space
-    this.colorRAM.fill(1);  // White text default
 
-    const bannerText = "      GRID BIKE ";
-    const lines = [
-      { text: bannerText, row: 0, col: 0, color: 7 },
-      { text: "YOU ARE THE DRIVER ", row: 2, col: 0, color: 1 },
-      { text: "OF THE GRID BIKE.", row: 3, col: 0, color: 1 },
-      { text: "YOU MUST DRIVE ROUND ", row: 4, col: 0, color: 1 },
-      { text: "THE GRID PICKING UP", row: 5, col: 0, color: 1 },
-      { text: "THE PEOPLE.", row: 6, col: 0, color: 1 },
-      { text: "AS YOU DRIVE AROUND", row: 7, col: 0, color: 1 },
-      { text: "THE GRID YOU LEAVE A", row: 8, col: 0, color: 1 },
-      { text: "TRAIL.", row: 9, col: 0, color: 1 },
-      { text: "IF YOU RUN INTO IT", row: 10, col: 0, color: 1 },
-      { text: "YOU WILL BE KILLED.", row: 11, col: 0, color: 1 },
-      { text: "Z=LEFT", row: 12, col: 0, color: 1 },
-      { text: "X=RIGHT", row: 13, col: 0, color: 1 },
-      { text: "L=UP", row: 14, col: 0, color: 1 },
-      { text: ",=DOWN", row: 15, col: 0, color: 1 },
-      { text: "     PRESS ANY KEY", row: 17, col: 0, color: 3 },
-      { text: "BY D.PEARSON", row: 19, col: 0, color: 1 }
-    ];
-
-    lines.forEach(item => {
-      this.printText(item.text, item.row, item.col, item.color);
-    });
+    // Lines 5000-5175 in exact PETSCII sequence:
+    // 5020: 6 leading spaces BEFORE {RVON} -> White box starts at Col 6!
+    this.printPetscii(
+      "{CLR}{WHITE}" +
+      "      {RVON} GRID BIKE \n" +
+      "{DOWN}YOU ARE THE DRIVER \n" +
+      "OF THE GRID BIKE.\n" +
+      "YOU MUST DRIVE ROUND \n" +
+      "THE GRID PICKING UP\n" +
+      "THE PEOPLE.\n" +
+      "AS YOU DRIVE AROUND\n" +
+      "THE GRID YOU LEAVE A\n" +
+      "TRAIL.\n" +
+      "IF YOU RUN INTO IT\n" +
+      "YOU WILL BE KILLED.\n" +
+      "Z=LEFT\n" +
+      "X=RIGHT\n" +
+      "L=UP\n" +
+      ",=DOWN\n" +
+      "{CYAN}     PRESS ANY KEY\n" +
+      "{WHITE}{DOWN}BY D.PEARSON"
+    );
 
     this.render();
   }
 
   showDifficultyPrompt() {
     this.state = 'DIFFICULTY';
-    this.screenRAM.fill(32);
-    this.colorRAM.fill(1);
 
-    // Exact text from Line 2: DO YOU WANT EASY(1) OR HARD (2)
-    // 31 characters long; wraps automatically from Col 21 of Row 0 to Col 0 of Row 1
-    const promptLine = "DO YOU WANT EASY(1) OR HARD (2)";
-    const colorMap = {};
-    for (let i = 0; i < promptLine.length; i++) {
-      if (promptLine[i] === '1' || promptLine[i] === '2') {
-        colorMap[i] = 2; // Red highlight for (1) and (2) (Line 2: {RED}1{WHITE}, {RED}2)
-      } else {
-        colorMap[i] = 1; // White text
-      }
-    }
-
-    this.printText(promptLine, 0, 0, 1, colorMap);
+    // Line 2: PRINT"{CLR}{WHITE}DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})"
+    this.printPetscii("{CLR}{WHITE}DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})");
     this.render();
   }
 
@@ -583,10 +628,9 @@ class GridBikeGame {
       this.soundChip.silenceAll();
       this.score += 100; // Line 6130: SC = SC + 100 bonus
 
+      // Line 6110: PRINT"{BLACK}": POKE36874,0: POKE36875,0: POKE36876,0
       // Line 6120: PRINT"{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID";GRID;"CLEARED"
-      // Line 6120: PRINT"{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID";GRID;"CLEARED"
-      const clearStr = ` GRID ${this.gridLevel} CLEARED `;
-      this.printText(clearStr, 3, 1, 7);
+      this.printPetscii(`{BLACK}{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID ${this.gridLevel} CLEARED`);
       this.render();
 
       // Line 6125-6130: Delay & Stage Advance
@@ -626,21 +670,20 @@ class GridBikeGame {
 
   // Lines 4080-4180: Game Over Screen Presentation
   showGameOverScreen() {
-    this.screenRAM.fill(32);
-    this.colorRAM.fill(1);
-
-    const bannerText = "      GRID BIKE ";
-    const line1 = `YOUR SCORE=${this.score}`;
-    const line2 = `HIGH SCORE=${this.highScore}`;
-    const line3 = "ANOTHER GAME(Y/N)";
-
-    // Render banner on row 0
-    this.printText(bannerText, 0, 0, 7);
-
-    this.printText(line1, 4, 0, 1);
-    this.printText(line2, 6, 0, 1);
-    this.printText(line3, 9, 0, 7); // Yellow "ANOTHER GAME(Y/N)" prompt
-
+    this.state = 'GAME_OVER';
+    // BASIC Lines 4080-4140:
+    // 4080 PRINT"{CLR}{WHITE}"
+    // 4100 PRINT"     {RVON} GRID BIKE "
+    // 4110 PRINT"{DOWN}{DOWN}{DOWN}YOUR SCORE=";SC
+    // 4130 PRINT"{DOWN}HIGH SCORE=";HS
+    // 4140 PRINT"{DOWN}{DOWN}ANOTHER GAME(Y/N)"
+    this.printPetscii(
+      "{CLR}{WHITE}" +
+      "     {RVON} GRID BIKE \n" +
+      "{DOWN}{DOWN}{DOWN}YOUR SCORE=" + this.score + "\n" +
+      "{DOWN}HIGH SCORE=" + this.highScore + "\n" +
+      "{DOWN}{DOWN}ANOTHER GAME(Y/N)"
+    );
     this.render();
   }
 
@@ -654,10 +697,12 @@ class GridBikeGame {
 
   // --- RENDERING ENGINE ---
   render() {
-    // Determine screen background based on game state
-    let bgHex = VIC_COLORS[1]; // Default White background for game grid
-    if (this.state === 'LOADER' || this.state === 'DIFFICULTY' || this.state === 'GAME_OVER') {
-      bgHex = VIC_COLORS[0]; // Black screen background for menus/prompts (POKE 36879, 8)
+    // Determine screen background based on Vic-20 POKE 36879 ($900F)
+    // LOADER / DIFFICULTY / GAME_OVER: POKE 36879, 8 -> Black background (0), Black border (0)
+    // PLAYING / LEVEL_CLEAR: POKE 36879, 56 (0x38) -> Cyan background (3), Black border (0)
+    let bgHex = VIC_COLORS[0]; // Black background default for menus
+    if (this.state === 'PLAYING' || this.state === 'LEVEL_CLEAR') {
+      bgHex = VIC_COLORS[3]; // Cyan screen background (POKE 36879, 56)
     }
 
     this.ctx.fillStyle = bgHex;
@@ -668,18 +713,20 @@ class GridBikeGame {
         const idx = r * this.COLS + c;
         const charCode = this.screenRAM[idx];
         const colorCode = this.colorRAM[idx];
-        const pixelColor = VIC_COLORS[colorCode] || '#0000aa';
 
         const x = c * this.CELL_PX;
         const y = r * this.CELL_PX;
 
-        this.drawCharacter(charCode, x, y, pixelColor, bgHex);
+        this.drawCharacter(charCode, x, y, colorCode, bgHex);
       }
     }
   }
 
-  drawCharacter(charCode, destX, destY, colorHex, screenBgHex) {
+  drawCharacter(charCode, destX, destY, colorCode, screenBgHex) {
     const customDef = CHAR_DEFINITIONS[charCode];
+    const isReverse = (colorCode & 0x80) !== 0;
+    const pureColor = colorCode & 0x7f;
+    const colorHex = VIC_COLORS[pureColor] || '#ffffff';
 
     if (customDef) {
       // Render custom defined 8x8 bitmap
@@ -698,23 +745,13 @@ class GridBikeGame {
         }
       }
     } else {
-      // Standard ASCII character cell (e.g. text message on menu/grid)
-      // Reverse mode container box for title banners and clear messages
+      // Standard ASCII character cell (PETSCII reverse video supported)
       let bgBoxColor = screenBgHex;
       let textColor = colorHex;
 
-      if (colorHex === VIC_COLORS[7] || colorHex === '#eeee00') {
-        // Yellow reverse video banner: Blue box with Yellow text
-        bgBoxColor = VIC_COLORS[6];
-        textColor = VIC_COLORS[7];
-      } else if (colorHex === VIC_COLORS[2] || colorHex === '#dd0000') {
-        // Red highlight
-        bgBoxColor = screenBgHex;
-        textColor = VIC_COLORS[2];
-      } else if (colorHex === VIC_COLORS[3] || colorHex === '#00e0e0') {
-        // Cyan prompt text
-        bgBoxColor = screenBgHex;
-        textColor = VIC_COLORS[3];
+      if (isReverse) {
+        bgBoxColor = colorHex;
+        textColor = screenBgHex;
       }
 
       this.ctx.fillStyle = bgBoxColor;
