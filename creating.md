@@ -324,22 +324,141 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 
 ---
 
+## Act XVI: JavaScript Engine Alignment with Recovered Cassette Tape Mechanics & Layout
+
+### 💬 Prompt 18
+> *"Now that we've improved our understanding of the original source, improving the source from the tape archive, make any required changes to the JavaScript version of the game to get the same game grid layout, text, colours, etc. Also the exact same mechanics."*
+
+### 🔍 Technical Rationale & Gameplay Synchronization
+1. **Title & Difficulty Screens (`game.js`):**
+   - **`showLoaderScreen()`:** Updated to use exact PETSCII color formatting: Black background (`#000000`), White instructions text, Cyan (`#00e0e0`) for `"PRESS ANY KEY"`, and Reverse Yellow title banner (`"      GRID BIKE "`).
+   - **`showDifficultyPrompt()`:** Updated text to match Line 2: `DO YOU WANT EASY(1) OR HARD (2)` with `(1)` and `(2)` highlighted in Red (`#dd0000`).
+2. **Obstacle Placement & Stage Progression:**
+   - **Hard Mode Obstacles:** Fixed obstacle count to strictly 10 blocks (`FOR N=1 TO 10`), matching BASIC Line 101.
+   - **Stage Progression & Men Counter:**
+     - Level 1 starts with 1 man (`MAN = 1`). Clearing the grid increments `MAN = MAN + 1` (Level 2 = 2 men, Level 3 = 3 men, etc.).
+     - Scoring: Each man collected adds **10 points** (`SC = SC + 10`). Level clear adds **100 bonus points** (`SC = SC + 100`).
+3. **Sound Effects & Crash Animations:**
+   - **Explosion Noise Sweep:** Recreated lines 4001-4050 in `Vic20SoundChip`: sweeps noise frequency register `36877` from pitch `128` to `163` (`QW = QW + 5`) across 10 flash steps, while flashing the crash cell (`A - D`) across palette colors 0 to 7.
+4. **Game Over & Replay Screen:**
+   - Displays `YOUR SCORE= SC`, `HIGH SCORE= HS`, and `ANOTHER GAME(Y/N)` in exact VIC-20 font/color formatting.
+
+### 🛠️ Work Done
+- Updated [`game.js`](game.js) with accurate VIC-20 screen colors, menu prompts, man progression, scoring rules, explosion sweep audio, and Game Over replay logic.
+- Updated [`index.html`](index.html) modal source code block.
+
+---
+
 ## Summary of Completed Files
 
 - **[`index.html`](index.html):** Main web app with CRT monitor frame, safe-area mobile controller bar, HUD, and magazine archive modal.
-- **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, and `Vic20SoundChip` emulator.
+- **[`game.js`](game.js):** 22x23 tile renderer, Vic-20 RAM simulation, touch prompt handler, authentic menu colors, and `Vic20SoundChip` emulator.
 - **[`style.css`](style.css):** Retro arcade CRT styling, safe-area responsive layout, natural mobile scroll, and D-Pad styles.
 - **[`tape-image/grid-bike.t64`](tape-image/grid-bike.t64):** Authentic 1983 PCNEWS Vic-20 cassette tape image container.
 - **[`grid-bike-loader.bas`](grid-bike-loader.bas) / [`grid-bike-1.bas`](grid-bike-1.bas):** Standalone Vic-20 BASIC Part 1 Graphics Loader (Recovered from T64).
-- **[`grid-bike-game.bas`](grid-bike-game.bas) / [`grid-bike-2.bas`](grid-bike-2.bas):** Standalone Vic-20 BASIC Part 2 Main Game Program (Recovered from T64 with exact lines 0–6130, sound effects & high scores).
-- **[`README.md`](README.md):** User-facing repository overview and technical summary.
-- **[`creating.md`](creating.md):** Detailed development blog post draft tracking prompts and technical iterations.
-- **[`AGENTS.md`](AGENTS.md):** AI agent guidelines, emulation standards, and mandatory documentation directive.
+## Act XVII: Escaping HTML Entities in BASIC Code Listing Modal
 
+### 💬 Prompt 19
+> *"the basic source, when included in the site, seems to not escape HTML entiries. This is resulting in truncated lines and code."*
 
+### 🔍 Technical Rationale & Root Cause Analysis
+1. **HTML Parser Tag Interpretation:**
+   - In [`index.html`](index.html), the BASIC source code listing within `<pre class="code-block">` contained unescaped `<` (less than) and `>` (greater than) comparison operators.
+   - For example, BASIC line 3 contained `IFTYU<1ORTYU>2THEN2`. The browser HTML parser interpreted `<1ORTYU>` as an unknown HTML element/tag and suppressed it from rendering, resulting in truncated display `3 IFTYU 2THEN2`.
+   - Similarly, lines containing `PEEK(RP)<>2`, `IFPEEK(A)>2ANDPEEK(A)<10`, `IFA<7680ORA>8185`, `IFSC>HS`, `IFTYU<1ORTYU>2`, and `IFDF<MAN` were truncated when parsed as HTML.
 
+### 🛠️ Work Done
+- Escaped all comparison operators (`<` to `&lt;`, `>` to `&gt;`, `<>` to `&lt;&gt;`) within the `<pre class="code-block">` section in [`index.html`](index.html).
+- Verified that all Vic-20 BASIC source code lines render completely without truncation.
 
+---
 
+## Act XVIII: Hardware-Accurate PETSCII Screen Line Wrapping Engine Implementation
 
+### 💬 Prompt 20
+> *"Some of the text is running off the screen. A thing to remember is that if text was printed that ran off the screen, it would wrap around to the next line. The code for Grid Bike relies on that."*
 
+### 🔍 Technical Rationale & Hardware-Accurate Screen Line Wrapping Analysis
+1. **VIC-20 22-Column Screen Wrapping Mechanics:**
+   - The Commodore VIC-20 display controller renders a 22-column wide grid (addressable from `7680` to `8185`).
+   - When printing PETSCII text in CBM BASIC (such as Line 2: `DO YOU WANT EASY(1) OR HARD (2)` [31 characters] or Line 5200 loader strings [54 characters]), any character exceeding column 21 automatically wraps to column 0 of the next row.
+   - The original BASIC code and cursor positioning routines rely on this automatic line wrapping behavior.
 
+2. **Root Cause of Text Truncation in JavaScript:**
+   - In [`game.js`](game.js), string rendering loops previously enforced hard clipping (`c < this.COLS` / `i < this.COLS`).
+   - This caused longer strings—such as `"DO YOU WANT EASY(1) OR HARD (2)"`—to be truncated after 22 characters, rendering only `"DO YOU WANT EASY(1) OR"` and silently discarding `" HARD (2)"`.
+
+### 🛠️ Work Done
+- Implemented `printText(str, row, col, defaultColor, colorMap)` in [`game.js`](game.js), providing sequential RAM indexing that automatically wraps past column 21 onto column 0 of subsequent rows.
+- Refactored `showDifficultyPrompt()`, `showLoaderScreen()`, `showGameOverScreen()`, and `handleManCollected()` in [`game.js`](game.js) to utilize `printText()`.
+- Verified that 31-character menu prompts and all screen text render with authentic 22-column line wrapping.
+
+---
+
+## Act XIX: 100% Authentic PETSCII Color, Position & VIC-20 POKE Register Alignment
+
+### 💬 Prompt 21
+> *"Now that we have the actual source to hand, as lifted from tape, can we also ensure that the actual position of text is correct, and also that all colours are correct too? Ensure to research what each of the colour and position codes mean in the basic source code and make sure that the result in the game reflects my original intent and choices, back in 1983."*
+
+### 🔍 Research & Hardware Register Analysis
+1. **VIC-20 Screen & Border Color Register (`POKE 36879` / `$900F`):**
+   - **`POKE 36879, 8` (Loader Line 5010 & Game Over Line 4090):** High nibble `0` (Black background), Low nibble `0` (Black border). Menus and instruction screens render on a solid Black canvas.
+   - **`POKE 36879, 56` (Gameplay Line 45):** Value `56` (`0x38`) = High nibble `3` (Cyan background), Bit 3 `1` (Normal mode), Low nibble `0` (Black border). The gameplay screen background is Cyan (`#00e0e0`), while grid lines and trail are Blue (6), bike head is Red (2), obstacles are Black (0), and border wall is Black (0).
+
+2. **PETSCII Reverse Video (`{RVON}` / `CHR$(18)`) Mechanics:**
+   - In CBM BASIC, `{RVON}` inverts the foreground and background colors of character cells.
+   - **Title Banners (Lines 5020 & 4100):** `{WHITE}` + `{RVON}` produces Reverse White on Black (solid White box cells with Black text).
+   - **Level Cleared Banner (Lines 6110 & 6120):** `{BLACK}` + `{RVON}` produces Reverse Black on Cyan (solid Black box cells with Cyan text).
+
+3. **Text Positioning & Color Code Mapping:**
+   - **Line 2 Loader Difficulty Prompt:** `DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})` starting at Row 0 Col 0 after `{CLR}`, wrapping to Row 1 Col 0 with Red `1` and `2`.
+   - **Line 5170 Loader Prompt:** `PRINT"{CYAN}     PRESS ANY KEY"` on Row 17 Col 0 in Cyan (3).
+   - **Line 5175 Loader Byline:** `PRINT"{WHITE}{DOWN}BY D.PEARSON"` on Row 19 Col 0 in White (1).
+   - **Line 4200 Game Over Difficulty Re-prompt:** `DO YOU WANT ({YELLOW}1{WHITE})EASY OR ({YELLOW}2{WHITE})HARD` with Yellow `1` and `2`.
+
+### 🛠️ Work Done
+- Updated `render()` in [`game.js`](game.js) to set Cyan screen background (`VIC_COLORS[3]`, `#00e0e0`) during gameplay (`POKE 36879, 56`) and Black background (`VIC_COLORS[0]`, `#000000`) on menu screens (`POKE 36879, 8`).
+- Updated `drawCharacter()` in [`game.js`](game.js) to evaluate bit 7 (`0x80`) of `colorRAM` as PETSCII `{RVON}` reverse video, swapping cell background and foreground text colors.
+- Synchronized `showLoaderScreen()`, `showDifficultyPrompt()`, `showGameOverScreen()`, and `handleManCollected()` in [`game.js`](game.js) with 100% accurate PETSCII positions, colors, and reverse video flags.
+
+---
+
+## Act XX: Inline PETSCII Control Stream Parser & Title Banner Alignment Fix
+
+### 💬 Prompt 22
+> *"On the instruction screen, the white background of the "GRID BIKE" title starts at the start of the line, but I don't think it's supposed to. Please review the order in which colour and position are applied."*
+
+### 🔍 PETSCII Control Stream Rationale & Alignment Analysis
+1. **Line 5020 Character Sequence (`PRINT"      {RVON} GRID BIKE "`):**
+   - In Commodore BASIC line 5020, 6 leading spaces (`"      "`) are output to screen RAM before the `{RVON}` (Reverse Video ON, `CHR$(18)`) control code is encountered.
+   - The first 6 character cells (Columns 0 to 5) are printed in Normal Video on a Black background.
+   - `{RVON}` turns on Reverse Video at character index 6, causing only `" GRID BIKE "` (Columns 6 to 16) to render with the Reverse White background box.
+
+2. **Inline PETSCII Control Code Interpreter:**
+   - Replaced static character maps with `printPetscii(str, startRow, startCol, defaultColor)` in [`game.js`](game.js).
+   - `printPetscii` dynamically processes embedded control codes (`{CLR}`, `{HOME}`, `{DOWN}`, `{RIGHT}`, `{RVON}`, `{RVOFF}`, `{WHITE}`, `{CYAN}`, `{RED}`, `{YELLOW}`, `{BLACK}`) in exact character stream order.
+
+### 🛠️ Work Done
+- Implemented `printPetscii()` interpreter in [`game.js`](game.js).
+- Updated `showLoaderScreen()`, `showDifficultyPrompt()`, `showGameOverScreen()`, and `handleManCollected()` to parse exact CBM BASIC PETSCII streams.
+- Verified that the Title Banner White background box starts at Column 6 (after 6 normal Black spaces), matching David Pearson's exact 1983 screen layout.
+
+---
+
+## Act XXI: Automatic PETSCII Reverse Video Cancellation at Line Boundaries
+
+### 💬 Prompt 23
+> *"This change seems to cause the rest of the text to be in reverse video, can you please check how {RVON} worked and how it changed at the end of a line. I'm looking at screenshots of the original game and the reverse seemed to finished at the end of the title."*
+
+### 🔍 CBM BASIC Hardware Specification Rationale
+1. **Commodore BASIC Carriage Return Reverse Video Reset:**
+   - In Commodore CBM BASIC V2 (VIC-20 / C64), printing `{RVON}` (`CHR$(18)`) enables reverse video mode for the current character stream.
+   - However, **reverse video mode is automatically cancelled** by the OS screen editor whenever a carriage return (`CHR$(13)` / newline `\n`), `{CLR}`, or `{HOME}` is printed.
+   - Line 5020 (`PRINT"      {RVON} GRID BIKE "`) enables `{RVON}` only for `" GRID BIKE "`. Upon reaching the end of the `PRINT` line, reverse video is automatically reset to normal mode before line 5030 (`PRINT"{DOWN}YOU ARE THE DRIVER "`) executes.
+
+2. **Fix in JavaScript Engine:**
+   - Updated `printPetscii()` in [`game.js`](game.js) to reset `isReverse = false` whenever `\n`, `{CLR}`, or `{HOME}` is encountered.
+
+### 🛠️ Work Done
+- Updated `printPetscii()` in [`game.js`](game.js) to enforce automatic cancellation of reverse video mode at newline and screen clear boundaries.
+- Verified that only `" GRID BIKE "` renders with the Reverse White box, and all instruction lines (Rows 2 to 19) render in Normal Video (White/Cyan text on Black background).

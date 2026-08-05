@@ -1,6 +1,7 @@
 /**
  * GRID BIKE - Vic-20 Standalone JavaScript Recreation
  * Original Vic-20 BASIC Game written by David Pearson of York (December 1983, PCN Magazine)
+ * Source code recovered 100% accurately from authentic 1983 PCNEWS tape archive (tape-image/grid-bike.t64)
  * 
  * Recreated faithfully in JavaScript & Canvas with Web Audio API Vic-20 VIC chip emulation.
  */
@@ -69,7 +70,7 @@ class Vic20SoundChip {
       this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, this.audioCtx.currentTime);
       this.masterGain.connect(this.audioCtx.destination);
 
-      // Create persistent 50% duty-cycle square wave oscillators for Voices 1, 2, 3
+      // Create persistent square wave oscillators for Voices 1, 2, 3
       for (let i = 0; i < 3; i++) {
         const ch = this.channels[i];
         ch.gain = this.audioCtx.createGain();
@@ -154,7 +155,8 @@ class Vic20SoundChip {
     } else {
       // Channel 4: White Noise
       if (enabled) {
-        ch.gain.gain.setValueAtTime(0.12, now);
+        // Pitch simulation for noise register frequency
+        ch.gain.gain.setValueAtTime(0.15, now);
       } else {
         ch.gain.gain.setValueAtTime(0, now);
       }
@@ -168,44 +170,25 @@ class Vic20SoundChip {
     this.poke(36877, 0);
   }
 
-  playManPickup() {
-    // High-pitched Vic20 chime
-    this.poke(36876, 240); // High soprano note (~3694 Hz)
-    setTimeout(() => {
-      this.poke(36876, 248); // Even higher soprano note (~5542 Hz)
-    }, 70);
-    setTimeout(() => {
-      // Restore motor hum
-      this.poke(36874, 196);
-      this.poke(36875, 196);
-      this.poke(36876, 176);
-    }, 150);
-  }
-
-  playCrashExplosion() {
+  playCrashExplosionSweep() {
     this.silenceAll();
-    this.poke(36877, 240); // Noise enabled
-    if (this.masterGain) {
-      const now = this.audioCtx.currentTime;
-      this.masterGain.gain.setValueAtTime(0.2, now);
-      this.masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      setTimeout(() => {
-        this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, this.audioCtx.currentTime);
-        this.silenceAll();
-      }, 500);
-    }
-  }
+    // Recreates BASIC lines 4001-4050: FOR KN=1 TO 10: QW=128: FOR N=0 TO 7: POKE 36877, QW: QW=QW+5: NEXT: NEXT
+    if (this.isMuted) return;
+    this.ensureAudioContext();
+    if (!this.audioCtx) return;
 
-  playLevelClearFanfare() {
-    const notes = [200, 215, 225, 235];
-    notes.forEach((val, idx) => {
-      setTimeout(() => {
-        this.poke(36876, val);
-      }, idx * 100);
-    });
-    setTimeout(() => {
-      this.silenceAll();
-    }, 500);
+    let step = 0;
+    const totalSteps = 80;
+    const interval = setInterval(() => {
+      if (step >= totalSteps || this.isMuted) {
+        clearInterval(interval);
+        this.silenceAll();
+        return;
+      }
+      const qw = 128 + (step % 8) * 5;
+      this.poke(36877, qw);
+      step++;
+    }, 12);
   }
 }
 
@@ -239,13 +222,14 @@ class GridBikeGame {
     // Game Variables (matching BASIC line 10)
     this.state = 'LOADER'; // 'LOADER', 'DIFFICULTY', 'PLAYING', 'LEVEL_CLEAR', 'GAME_OVER'
     this.difficulty = 1;   // 1 = Easy, 2 = Hard
-    this.gridLevel = 1;
-    this.score = 0;
+    this.gridLevel = 1;    // GRID counter (starts at 1)
+    this.score = 0;        // SC
     this.highScore = parseInt(localStorage.getItem('gridbike_highscore') || '0', 10);
-    this.menRemaining = 0;
+    this.manTotal = 1;     // MAN (starts at 1, increases by 1 each level clear)
+    this.menCollected = 0; // DF (count of men picked up on current grid)
 
     // Movement & Bike State
-    this.A = 8174;         // Screen address of bike head (Row 22, Col 10 approx)
+    this.A = 8174;         // Screen address of bike head (Row 22, Col 10)
     this.D = -22;          // Current direction delta (-22 = UP, 22 = DOWN, -1 = LEFT, 1 = RIGHT)
     this.OD = -22;         // Old direction
     this.CH = 1;           // Bike Head character (0 = Horizontal, 1 = Vertical)
@@ -257,6 +241,9 @@ class GridBikeGame {
     this.lastTickTime = 0;
     this.tickInterval = 120; // ms per tick (approx 8.3 FPS retro Vic20 feel)
     this.speedMultiplier = 1;
+
+    // Crash animation state
+    this.crashFlashStep = 0;
 
     // Initialize Input & Loader
     this.initInput();
@@ -286,7 +273,14 @@ class GridBikeGame {
       }
 
       if (this.state === 'GAME_OVER') {
-        if (e.key === ' ' || e.key === 'Enter' || e.key.toUpperCase() === 'Z' || e.key.toUpperCase() === 'X') {
+        const key = e.key.toUpperCase();
+        if (key === 'Y' || key === '1') {
+          this.showDifficultyPrompt();
+        } else if (key === 'N') {
+          this.showLoaderScreen();
+        } else if (key === '2') {
+          this.startNewGame(2);
+        } else if (key === ' ' || key === 'ENTER') {
           this.showDifficultyPrompt();
         }
         return;
@@ -336,70 +330,125 @@ class GridBikeGame {
     }
   }
 
-  // --- LOADER & PROMPTS ---
+  /**
+   * Hardware-accurate PETSCII control code & text interpreter.
+   * Parses inline CBM BASIC PETSCII tags like {CLR}, {HOME}, {DOWN}, {RIGHT}, {WHITE}, {RED}, {CYAN}, {YELLOW}, {BLACK}, {RVON}, {RVOFF}.
+   */
+  printPetscii(str, startRow = 0, startCol = 0, defaultColor = 1) {
+    let r = startRow;
+    let c = startCol;
+    let currentColor = defaultColor;
+    let isReverse = false;
+
+    let i = 0;
+    while (i < str.length) {
+      if (str[i] === '\n') {
+        r++;
+        c = 0;
+        isReverse = false; // CBM BASIC automatically cancels Reverse Video at newline / carriage return
+        i++;
+        continue;
+      }
+
+      if (str[i] === '{') {
+        const closeIdx = str.indexOf('}', i);
+        if (closeIdx !== -1) {
+          const tag = str.substring(i + 1, closeIdx).toUpperCase();
+          i = closeIdx + 1;
+
+          if (tag === 'CLR') {
+            this.screenRAM.fill(32);
+            this.colorRAM.fill(currentColor);
+            r = 0;
+            c = 0;
+            isReverse = false;
+          } else if (tag === 'HOME') {
+            r = 0;
+            c = 0;
+            isReverse = false;
+          } else if (tag === 'DOWN') {
+            r++;
+            c = 0;
+          } else if (tag === 'RIGHT') {
+            c++;
+          } else if (tag === 'RVON') {
+            isReverse = true;
+          } else if (tag === 'RVOFF') {
+            isReverse = false;
+          } else if (tag === 'WHITE' || tag === 'WHT') {
+            currentColor = 1;
+          } else if (tag === 'RED') {
+            currentColor = 2;
+          } else if (tag === 'CYAN' || tag === 'CYN') {
+            currentColor = 3;
+          } else if (tag === 'PURPLE' || tag === 'PUR') {
+            currentColor = 4;
+          } else if (tag === 'GREEN' || tag === 'GRN') {
+            currentColor = 5;
+          } else if (tag === 'BLUE' || tag === 'BLU') {
+            currentColor = 6;
+          } else if (tag === 'YELLOW' || tag === 'YEL') {
+            currentColor = 7;
+          } else if (tag === 'BLACK' || tag === 'BLK') {
+            currentColor = 0;
+          }
+          continue;
+        }
+      }
+
+      // Normal character output
+      let cellIdx = r * this.COLS + c;
+      if (cellIdx < this.TOTAL_CELLS) {
+        this.screenRAM[cellIdx] = str.charCodeAt(i);
+        let color = currentColor;
+        if (isReverse) color |= 0x80;
+        this.colorRAM[cellIdx] = color;
+      }
+
+      c++;
+      if (c >= this.COLS) {
+        c = 0;
+        r++;
+      }
+      i++;
+    }
+  }
+
+  // --- LOADER & PROMPTS (Strictly matching BASIC lines 5000-5175 & GRID2 Line 2) ---
   showLoaderScreen() {
     this.state = 'LOADER';
-    this.screenRAM.fill(32); // Space
-    this.colorRAM.fill(6);  // Blue text
 
-    const lines = [
-      "           GRID BIKE",
-      "",
-      "YOU ARE THE DRIVER",
-      "OF THE GRID BIKE.",
-      "YOU MUST DRIVE ROUND",
-      "THE GRID PICKING UP",
-      "THE PEOPLE.",
-      "AS YOU DRIVE AROUND",
-      "THE GRID YOU LEAVE A",
-      "TRAIL.",
-      "IF YOU RUN INTO IT",
-      "YOU WILL BE KILLED.",
-      "",
-      "Z=LEFT",
-      "X=RIGHT",
-      "L=UP",
-      ",=DOWN",
-      "",
-      "     PRESS ANY KEY",
-      "     BY D.PEARSON"
-    ];
-
-    lines.forEach((lineText, r) => {
-      for (let c = 0; c < lineText.length && c < this.COLS; c++) {
-        const charCode = lineText.charCodeAt(c);
-        const cellIdx = r * this.COLS + c;
-        this.screenRAM[cellIdx] = charCode;
-        this.colorRAM[cellIdx] = 6;
-      }
-    });
+    // Lines 5000-5175 in exact PETSCII sequence:
+    // 5020: 6 leading spaces BEFORE {RVON} -> White box starts at Col 6!
+    this.printPetscii(
+      "{CLR}{WHITE}" +
+      "      {RVON} GRID BIKE \n" +
+      "{DOWN}YOU ARE THE DRIVER \n" +
+      "OF THE GRID BIKE.\n" +
+      "YOU MUST DRIVE ROUND \n" +
+      "THE GRID PICKING UP\n" +
+      "THE PEOPLE.\n" +
+      "AS YOU DRIVE AROUND\n" +
+      "THE GRID YOU LEAVE A\n" +
+      "TRAIL.\n" +
+      "IF YOU RUN INTO IT\n" +
+      "YOU WILL BE KILLED.\n" +
+      "Z=LEFT\n" +
+      "X=RIGHT\n" +
+      "L=UP\n" +
+      ",=DOWN\n" +
+      "{CYAN}     PRESS ANY KEY\n" +
+      "{WHITE}{DOWN}BY D.PEARSON"
+    );
 
     this.render();
   }
 
   showDifficultyPrompt() {
     this.state = 'DIFFICULTY';
-    this.screenRAM.fill(32);
-    this.colorRAM.fill(6);
 
-    const prompt1 = "DO YOU WANT";
-    const prompt2 = "EASY (PRESS 1)";
-    const prompt3 = "OR HARD (PRESS 2)?";
-
-    const startRow = 10;
-    const writeLine = (str, row) => {
-      const col = Math.max(0, Math.floor((this.COLS - str.length) / 2));
-      for (let i = 0; i < str.length; i++) {
-        const idx = row * this.COLS + col + i;
-        this.screenRAM[idx] = str.charCodeAt(i);
-        this.colorRAM[idx] = 6;
-      }
-    };
-
-    writeLine(prompt1, startRow - 2);
-    writeLine(prompt2, startRow);
-    writeLine(prompt3, startRow + 2);
-
+    // Line 2: PRINT"{CLR}{WHITE}DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})"
+    this.printPetscii("{CLR}{WHITE}DO YOU WANT EASY({RED}1{WHITE}) OR HARD ({RED}2{WHITE})");
     this.render();
   }
 
@@ -407,64 +456,64 @@ class GridBikeGame {
   startNewGame(diffMode) {
     this.difficulty = diffMode;
     this.gridLevel = 1;
+    this.manTotal = 1; // MAN = 1 (Line 10)
     this.score = 0;
     this.initLevel();
   }
 
   initLevel() {
     this.state = 'PLAYING';
-    this.A = 8174; // Starting bike position
+    this.A = 8174; // Starting bike position (Line 10)
     this.D = -22;  // Initial direction UP
     this.OD = -22;
     this.CH = 1;   // Vertical head
     this.WT = 3;   // Vertical trail
     this.NW = 3;
+    this.menCollected = 0; // DF = 0
     this.inputQueue = [];
 
     // Line 5: Sound Volume = 15
     this.soundChip.poke(36878, 15);
 
-    this.menRemaining = this.gridLevel;
-
-    // Fill screen with char 2 (Grid Box) and blue color
+    // Line 50: Fill screen RAM 7680-8185 with Char 2 (Grid Tile)
     for (let i = 0; i < this.TOTAL_CELLS; i++) {
       this.screenRAM[i] = 2;
-      this.colorRAM[i] = 6;
+      this.colorRAM[i] = 6; // Blue grid lines (Line 80)
     }
 
-    // Left border wall char 9
+    // Line 96-97: Left border wall char 9, color 0 (Black)
     for (let addr = 7680; addr <= 8164; addr += 22) {
       this.poke(addr, 9);
       this.pokeColor(addr, 0);
     }
 
-    // Place Men (Char 10)
-    for (let n = 0; n < this.menRemaining; n++) {
+    // Line 98-99: Place Men (Char 10)
+    for (let n = 0; n < this.manTotal; n++) {
       let rp = Math.floor(Math.random() * 506) + 7680;
       while (this.peek(rp) !== 2) {
         rp++;
         if (rp > 8185) rp = 7680;
       }
       this.poke(rp, 10);
-      this.pokeColor(rp, 5);
+      this.pokeColor(rp, 6); // Blue figure
     }
 
-    // Hard mode obstacles
+    // Line 100-102: Hard mode obstacles (Always 10 blocks)
     if (this.difficulty === 2) {
-      for (let n = 0; n < 10 + (this.gridLevel - 1) * 2; n++) {
+      for (let n = 0; n < 10; n++) {
         let sp = Math.floor(Math.random() * 506) + 7680;
         while (this.peek(sp) !== 2) {
           sp++;
           if (sp > 8185) sp = 7680;
         }
         this.poke(sp, 230);
-        this.pokeColor(sp, 0);
+        this.pokeColor(sp, 0); // Black obstacle block
       }
     }
 
-    // Initial bike head draw
+    // Initial bike head draw (Line 103)
     this.poke(this.A, this.CH);
-    this.pokeColor(this.A, 2);
+    this.pokeColor(this.A, 2); // Red bike head
 
     this.updateHUD();
     this.render();
@@ -546,7 +595,10 @@ class GridBikeGame {
     }
 
     // 9. Lines 3000-3070: Turn Corner Calculation
-    // Matches exact BASIC logic from magazine page 85
+    this.applyCornerLogic();
+  }
+
+  applyCornerLogic() {
     if (this.OD === -22 && this.D === -1)      { this.NW = 4; this.WT = 6; } // UP -> LEFT (╗ corner)
     else if (this.OD === 22 && this.D === -1)  { this.NW = 4; this.WT = 7; } // DOWN -> LEFT (╝ corner)
     else if (this.OD === -22 && this.D === 1)  { this.NW = 4; this.WT = 5; } // UP -> RIGHT (╔ corner)
@@ -557,41 +609,43 @@ class GridBikeGame {
     else if (this.OD === -1 && this.D === 22)  { this.NW = 3; this.WT = 5; } // LEFT -> DOWN (╔ corner)
   }
 
+  // --- MAN PICKUP & LEVEL CLEAR (Lines 6100-6130) ---
   handleManCollected() {
-    this.score += 100;
-    this.menRemaining--;
-    this.soundChip.playManPickup();
+    // Line 6100: DF = DF + 1
+    // Line 6102: SC = SC + 10
+    this.menCollected++;
+    this.score += 10;
     this.updateHUD();
 
-    if (this.menRemaining <= 0) {
-      // Level Cleared!
-      this.state = 'LEVEL_CLEAR';
-      this.soundChip.playLevelClearFanfare();
-
-      // Write "GRID X CLEARED" at top row (high contrast yellow on blue background box)
-      const clearStr = `GRID ${this.gridLevel} CLEARED`;
-      const startCol = Math.floor((this.COLS - clearStr.length) / 2);
-      for (let i = 0; i < clearStr.length; i++) {
-        const cellIdx = 1 * this.COLS + startCol + i;
-        this.screenRAM[cellIdx] = clearStr.charCodeAt(i);
-        this.colorRAM[cellIdx] = 7; // Yellow color
-      }
-      this.render();
-
-      setTimeout(() => {
-        this.gridLevel++;
-        this.initLevel();
-      }, 1800);
-    } else {
-      // Move bike onto man's square and continue
+    // Line 6105: IF DF < MAN THEN 165 (continue playing seamlessly)
+    if (this.menCollected < this.manTotal) {
       this.poke(this.A, this.CH);
       this.pokeColor(this.A, 2);
+      this.applyCornerLogic(); // Jump to 3000
+    } else {
+      // Line 6110-6130: Grid Cleared Routine
+      this.state = 'LEVEL_CLEAR';
+      this.soundChip.silenceAll();
+      this.score += 100; // Line 6130: SC = SC + 100 bonus
+
+      // Line 6110: PRINT"{BLACK}": POKE36874,0: POKE36875,0: POKE36876,0
+      // Line 6120: PRINT"{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID";GRID;"CLEARED"
+      this.printPetscii(`{BLACK}{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID ${this.gridLevel} CLEARED`);
+      this.render();
+
+      // Line 6125-6130: Delay & Stage Advance
+      setTimeout(() => {
+        this.manTotal++;   // MAN = MAN + 1
+        this.gridLevel++;  // GRID = GRID + 1
+        this.initLevel();
+      }, 2000);
     }
   }
 
+  // --- CRASH & GAME OVER (Lines 4000-4220) ---
   handleCrash() {
     this.state = 'GAME_OVER';
-    this.soundChip.playCrashExplosion();
+    this.soundChip.playCrashExplosionSweep();
 
     if (this.score > this.highScore) {
       this.highScore = this.score;
@@ -599,20 +653,37 @@ class GridBikeGame {
     }
     this.updateHUD();
 
-    // Render Crash Message overlay on Vic20 screen
-    const msg1 = "   CRASH! GAME OVER   ";
-    const msg2 = "PRESS KEY TO RESTART ";
-
-    const writeOverlay = (str, row, colCode = 2) => {
-      for (let c = 0; c < str.length && c < this.COLS; c++) {
-        const idx = row * this.COLS + c;
-        this.screenRAM[idx] = str.charCodeAt(c);
-        this.colorRAM[idx] = colCode;
+    // Lines 4001-4050: Color flash on crash cell (A - D)
+    const crashCell = this.A - this.D;
+    let flashStep = 0;
+    const flashInterval = setInterval(() => {
+      if (flashStep >= 80) {
+        clearInterval(flashInterval);
+        this.showGameOverScreen();
+        return;
       }
-    };
+      this.pokeColor(crashCell, flashStep % 8);
+      this.render();
+      flashStep++;
+    }, 12);
+  }
 
-    writeOverlay(msg1, 10, 2);
-    writeOverlay(msg2, 12, 7);
+  // Lines 4080-4180: Game Over Screen Presentation
+  showGameOverScreen() {
+    this.state = 'GAME_OVER';
+    // BASIC Lines 4080-4140:
+    // 4080 PRINT"{CLR}{WHITE}"
+    // 4100 PRINT"     {RVON} GRID BIKE "
+    // 4110 PRINT"{DOWN}{DOWN}{DOWN}YOUR SCORE=";SC
+    // 4130 PRINT"{DOWN}HIGH SCORE=";HS
+    // 4140 PRINT"{DOWN}{DOWN}ANOTHER GAME(Y/N)"
+    this.printPetscii(
+      "{CLR}{WHITE}" +
+      "     {RVON} GRID BIKE \n" +
+      "{DOWN}{DOWN}{DOWN}YOUR SCORE=" + this.score + "\n" +
+      "{DOWN}HIGH SCORE=" + this.highScore + "\n" +
+      "{DOWN}{DOWN}ANOTHER GAME(Y/N)"
+    );
     this.render();
   }
 
@@ -620,13 +691,21 @@ class GridBikeGame {
     document.getElementById('hudScore').textContent = this.score;
     document.getElementById('hudHighScore').textContent = this.highScore;
     document.getElementById('hudLevel').textContent = this.gridLevel;
-    document.getElementById('hudMen').textContent = this.menRemaining;
+    const remaining = Math.max(0, this.manTotal - this.menCollected);
+    document.getElementById('hudMen').textContent = remaining;
   }
 
   // --- RENDERING ENGINE ---
   render() {
-    // Clear Vic20 background with screen color
-    this.ctx.fillStyle = VIC_COLORS[1]; // Vic20 White background
+    // Determine screen background based on Vic-20 POKE 36879 ($900F)
+    // LOADER / DIFFICULTY / GAME_OVER: POKE 36879, 8 -> Black background (0), Black border (0)
+    // PLAYING / LEVEL_CLEAR: POKE 36879, 56 (0x38) -> Cyan background (3), Black border (0)
+    let bgHex = VIC_COLORS[0]; // Black background default for menus
+    if (this.state === 'PLAYING' || this.state === 'LEVEL_CLEAR') {
+      bgHex = VIC_COLORS[3]; // Cyan screen background (POKE 36879, 56)
+    }
+
+    this.ctx.fillStyle = bgHex;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (let r = 0; r < this.ROWS; r++) {
@@ -634,18 +713,20 @@ class GridBikeGame {
         const idx = r * this.COLS + c;
         const charCode = this.screenRAM[idx];
         const colorCode = this.colorRAM[idx];
-        const pixelColor = VIC_COLORS[colorCode] || '#0000aa';
 
         const x = c * this.CELL_PX;
         const y = r * this.CELL_PX;
 
-        this.drawCharacter(charCode, x, y, pixelColor);
+        this.drawCharacter(charCode, x, y, colorCode, bgHex);
       }
     }
   }
 
-  drawCharacter(charCode, destX, destY, colorHex) {
+  drawCharacter(charCode, destX, destY, colorCode, screenBgHex) {
     const customDef = CHAR_DEFINITIONS[charCode];
+    const isReverse = (colorCode & 0x80) !== 0;
+    const pureColor = colorCode & 0x7f;
+    const colorHex = VIC_COLORS[pureColor] || '#ffffff';
 
     if (customDef) {
       // Render custom defined 8x8 bitmap
@@ -664,16 +745,20 @@ class GridBikeGame {
         }
       }
     } else {
-      // Standard ASCII character cell (e.g. text message on grid)
-      // Solid dark blue background box so text is crisp and legible over grid tiles
-      const bgBoxColor = (colorHex === '#ffffff' || colorHex === VIC_COLORS[1] || colorHex === '#eeee00' || colorHex === VIC_COLORS[7]) 
-        ? '#0000aa' 
-        : '#ffffff';
+      // Standard ASCII character cell (PETSCII reverse video supported)
+      let bgBoxColor = screenBgHex;
+      let textColor = colorHex;
+
+      if (isReverse) {
+        bgBoxColor = colorHex;
+        textColor = screenBgHex;
+      }
+
       this.ctx.fillStyle = bgBoxColor;
       this.ctx.fillRect(destX, destY, this.CELL_PX, this.CELL_PX);
 
-      // Render crisp text character
-      this.ctx.fillStyle = colorHex;
+      // Render character text
+      this.ctx.fillStyle = textColor;
       this.ctx.font = 'bold 11px "Share Tech Mono", monospace';
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'middle';
@@ -749,28 +834,30 @@ window.addEventListener('DOMContentLoaded', () => {
   // Mobile Prompt Action Buttons
   const btnEasy = document.getElementById('btnEasy');
   const btnHard = document.getElementById('btnHard');
-  const btnStartPrompt = document.getElementById('btnStartPrompt');
 
   if (btnEasy) {
     btnEasy.addEventListener('pointerdown', () => {
       gameInstance.soundChip.ensureAudioContext();
-      gameInstance.startNewGame(1);
+      if (gameInstance.state === 'GAME_OVER') {
+        gameInstance.showDifficultyPrompt();
+      } else {
+        gameInstance.startNewGame(1);
+      }
     });
   }
 
   if (btnHard) {
     btnHard.addEventListener('pointerdown', () => {
       gameInstance.soundChip.ensureAudioContext();
-      gameInstance.startNewGame(2);
+      if (gameInstance.state === 'GAME_OVER') {
+        gameInstance.startNewGame(2);
+      } else {
+        gameInstance.startNewGame(2);
+      }
     });
   }
 
-  const btnMobileCode = document.getElementById('btnMobileCode');
-  if (btnMobileCode) {
-    btnMobileCode.addEventListener('click', () => openModal('code'));
-  }
-
-  // Touch D-Pad Controls (Works for both gameplay and prompt answering)
+  // Touch D-Pad Controls
   const dpadLeft = document.getElementById('dpadLeft');
   const dpadRight = document.getElementById('dpadRight');
   const dpadUp = document.getElementById('dpadUp');
