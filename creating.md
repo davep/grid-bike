@@ -370,3 +370,25 @@ The printed magazine listing in *PCN* (Page 85) was truncated at line `3060`. Da
 ### 🛠️ Work Done
 - Escaped all comparison operators (`<` to `&lt;`, `>` to `&gt;`, `<>` to `&lt;&gt;`) within the `<pre class="code-block">` section in [`index.html`](index.html).
 - Verified that all Vic-20 BASIC source code lines render completely without truncation.
+
+---
+
+## Act XVIII: Hardware-Accurate PETSCII Screen Line Wrapping Engine Implementation
+
+### 💬 Prompt 20
+> *"Some of the text is running off the screen. A thing to remember is that if text was printed that ran off the screen, it would wrap around to the next line. The code for Grid Bike relies on that."*
+
+### 🔍 Technical Rationale & Hardware-Accurate Screen Line Wrapping Analysis
+1. **VIC-20 22-Column Screen Wrapping Mechanics:**
+   - The Commodore VIC-20 display controller renders a 22-column wide grid (addressable from `7680` to `8185`).
+   - When printing PETSCII text in CBM BASIC (such as Line 2: `DO YOU WANT EASY(1) OR HARD (2)` [31 characters] or Line 5200 loader strings [54 characters]), any character exceeding column 21 automatically wraps to column 0 of the next row.
+   - The original BASIC code and cursor positioning routines rely on this automatic line wrapping behavior.
+
+2. **Root Cause of Text Truncation in JavaScript:**
+   - In [`game.js`](game.js), string rendering loops previously enforced hard clipping (`c < this.COLS` / `i < this.COLS`).
+   - This caused longer strings—such as `"DO YOU WANT EASY(1) OR HARD (2)"`—to be truncated after 22 characters, rendering only `"DO YOU WANT EASY(1) OR"` and silently discarding `" HARD (2)"`.
+
+### 🛠️ Work Done
+- Implemented `printText(str, row, col, defaultColor, colorMap)` in [`game.js`](game.js), providing sequential RAM indexing that automatically wraps past column 21 onto column 0 of subsequent rows.
+- Refactored `showDifficultyPrompt()`, `showLoaderScreen()`, `showGameOverScreen()`, and `handleManCollected()` in [`game.js`](game.js) to utilize `printText()`.
+- Verified that 31-character menu prompts and all screen text render with authentic 22-column line wrapping.

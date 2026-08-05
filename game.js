@@ -330,6 +330,28 @@ class GridBikeGame {
     }
   }
 
+  /**
+   * Hardware-accurate PETSCII text printing with automatic 22-column line wrapping.
+   * If text extends beyond column 21 of a row, it automatically wraps around to column 0 of the next row.
+   */
+  printText(str, row = 0, col = 0, defaultColor = 1, colorMap = null) {
+    let cellIdx = row * this.COLS + col;
+    for (let i = 0; i < str.length; i++) {
+      if (cellIdx >= this.TOTAL_CELLS) break;
+      const charCode = str.charCodeAt(i);
+      this.screenRAM[cellIdx] = charCode;
+
+      let color = defaultColor;
+      if (colorMap && colorMap[i] !== undefined) {
+        color = colorMap[i];
+      }
+      this.colorRAM[cellIdx] = color;
+
+      cellIdx++;
+    }
+    return cellIdx;
+  }
+
   // --- LOADER & PROMPTS (Strictly matching BASIC lines 5000-5175 & GRID2 Line 2) ---
   showLoaderScreen() {
     this.state = 'LOADER';
@@ -338,40 +360,27 @@ class GridBikeGame {
 
     const bannerText = "      GRID BIKE ";
     const lines = [
-      bannerText,
-      "",
-      "YOU ARE THE DRIVER ",
-      "OF THE GRID BIKE.",
-      "YOU MUST DRIVE ROUND ",
-      "THE GRID PICKING UP",
-      "THE PEOPLE.",
-      "AS YOU DRIVE AROUND",
-      "THE GRID YOU LEAVE A",
-      "TRAIL.",
-      "IF YOU RUN INTO IT",
-      "YOU WILL BE KILLED.",
-      "Z=LEFT",
-      "X=RIGHT",
-      "L=UP",
-      ",=DOWN",
-      "",
-      "     PRESS ANY KEY",
-      "BY D.PEARSON"
+      { text: bannerText, row: 0, col: 0, color: 7 },
+      { text: "YOU ARE THE DRIVER ", row: 2, col: 0, color: 1 },
+      { text: "OF THE GRID BIKE.", row: 3, col: 0, color: 1 },
+      { text: "YOU MUST DRIVE ROUND ", row: 4, col: 0, color: 1 },
+      { text: "THE GRID PICKING UP", row: 5, col: 0, color: 1 },
+      { text: "THE PEOPLE.", row: 6, col: 0, color: 1 },
+      { text: "AS YOU DRIVE AROUND", row: 7, col: 0, color: 1 },
+      { text: "THE GRID YOU LEAVE A", row: 8, col: 0, color: 1 },
+      { text: "TRAIL.", row: 9, col: 0, color: 1 },
+      { text: "IF YOU RUN INTO IT", row: 10, col: 0, color: 1 },
+      { text: "YOU WILL BE KILLED.", row: 11, col: 0, color: 1 },
+      { text: "Z=LEFT", row: 12, col: 0, color: 1 },
+      { text: "X=RIGHT", row: 13, col: 0, color: 1 },
+      { text: "L=UP", row: 14, col: 0, color: 1 },
+      { text: ",=DOWN", row: 15, col: 0, color: 1 },
+      { text: "     PRESS ANY KEY", row: 17, col: 0, color: 3 },
+      { text: "BY D.PEARSON", row: 19, col: 0, color: 1 }
     ];
 
-    lines.forEach((lineText, r) => {
-      for (let c = 0; c < lineText.length && c < this.COLS; c++) {
-        const charCode = lineText.charCodeAt(c);
-        const cellIdx = r * this.COLS + c;
-        this.screenRAM[cellIdx] = charCode;
-        if (r === 0) {
-          this.colorRAM[cellIdx] = 7; // Reverse Yellow title banner
-        } else if (r === 17) {
-          this.colorRAM[cellIdx] = 3; // Cyan text "PRESS ANY KEY" (Line 5170)
-        } else {
-          this.colorRAM[cellIdx] = 1; // White text
-        }
-      }
+    lines.forEach(item => {
+      this.printText(item.text, item.row, item.col, item.color);
     });
 
     this.render();
@@ -383,20 +392,18 @@ class GridBikeGame {
     this.colorRAM.fill(1);
 
     // Exact text from Line 2: DO YOU WANT EASY(1) OR HARD (2)
+    // 31 characters long; wraps automatically from Col 21 of Row 0 to Col 0 of Row 1
     const promptLine = "DO YOU WANT EASY(1) OR HARD (2)";
-    const startRow = 10;
-    const startCol = 0;
-
-    for (let i = 0; i < promptLine.length && i < this.COLS; i++) {
-      const idx = startRow * this.COLS + i;
-      this.screenRAM[idx] = promptLine.charCodeAt(i);
+    const colorMap = {};
+    for (let i = 0; i < promptLine.length; i++) {
       if (promptLine[i] === '1' || promptLine[i] === '2') {
-        this.colorRAM[idx] = 2; // Red highlight for (1) and (2) (Line 2: {RED}1{WHITE}, {RED}2)
+        colorMap[i] = 2; // Red highlight for (1) and (2) (Line 2: {RED}1{WHITE}, {RED}2)
       } else {
-        this.colorRAM[idx] = 1; // White text
+        colorMap[i] = 1; // White text
       }
     }
 
+    this.printText(promptLine, 0, 0, 1, colorMap);
     this.render();
   }
 
@@ -577,14 +584,9 @@ class GridBikeGame {
       this.score += 100; // Line 6130: SC = SC + 100 bonus
 
       // Line 6120: PRINT"{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID";GRID;"CLEARED"
+      // Line 6120: PRINT"{HOME}{DOWN}{DOWN}{DOWN}{RIGHT}{RVON}GRID";GRID;"CLEARED"
       const clearStr = ` GRID ${this.gridLevel} CLEARED `;
-      const startCol = 1;
-      const row = 3;
-      for (let i = 0; i < clearStr.length; i++) {
-        const cellIdx = row * this.COLS + startCol + i;
-        this.screenRAM[cellIdx] = clearStr.charCodeAt(i);
-        this.colorRAM[cellIdx] = 7; // Reverse Yellow text
-      }
+      this.printText(clearStr, 3, 1, 7);
       this.render();
 
       // Line 6125-6130: Delay & Stage Advance
@@ -627,30 +629,17 @@ class GridBikeGame {
     this.screenRAM.fill(32);
     this.colorRAM.fill(1);
 
-    const bannerText = "     GRID BIKE ";
+    const bannerText = "      GRID BIKE ";
     const line1 = `YOUR SCORE=${this.score}`;
     const line2 = `HIGH SCORE=${this.highScore}`;
     const line3 = "ANOTHER GAME(Y/N)";
 
-    const writeLine = (str, row, colCode = 1) => {
-      const col = Math.max(0, Math.floor((this.COLS - str.length) / 2));
-      for (let i = 0; i < str.length; i++) {
-        const idx = row * this.COLS + col + i;
-        this.screenRAM[idx] = str.charCodeAt(i);
-        this.colorRAM[idx] = colCode;
-      }
-    };
-
     // Render banner on row 0
-    for (let c = 0; c < bannerText.length; c++) {
-      const idx = c;
-      this.screenRAM[idx] = bannerText.charCodeAt(c);
-      this.colorRAM[idx] = 7; // Reverse Yellow
-    }
+    this.printText(bannerText, 0, 0, 7);
 
-    writeLine(line1, 4, 1);
-    writeLine(line2, 6, 1);
-    writeLine(line3, 9, 7); // Yellow "ANOTHER GAME(Y/N)" prompt
+    this.printText(line1, 4, 0, 1);
+    this.printText(line2, 6, 0, 1);
+    this.printText(line3, 9, 0, 7); // Yellow "ANOTHER GAME(Y/N)" prompt
 
     this.render();
   }
