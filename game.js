@@ -48,7 +48,7 @@ class Vic20SoundChip {
     this.audioCtx = null;
     this.masterGain = null;
     this.volume = 15; // Default max volume (0 to 15)
-    this.isMuted = false;
+    this._isMuted = false;
 
     // Channels configuration
     this.channels = [
@@ -59,6 +59,31 @@ class Vic20SoundChip {
     ];
   }
 
+  get isMuted() {
+    return this._isMuted;
+  }
+
+  set isMuted(value) {
+    this._isMuted = !!value;
+    if (this.audioCtx && this.masterGain) {
+      const now = this.audioCtx.currentTime;
+      const targetVol = this._isMuted ? 0 : (this.volume / 15) * 0.12;
+      this.masterGain.gain.setValueAtTime(targetVol, now);
+    }
+    if (this._isMuted) {
+      this.silenceAll();
+    } else {
+      this.refreshChannels();
+    }
+  }
+
+  refreshChannels() {
+    if (!this.audioCtx) return;
+    for (let i = 0; i < 4; i++) {
+      this.poke(36874 + i, this.channels[i].regVal);
+    }
+  }
+
   ensureAudioContext() {
     if (!this.audioCtx) {
       const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
@@ -67,7 +92,8 @@ class Vic20SoundChip {
 
       // Master volume node
       this.masterGain = this.audioCtx.createGain();
-      this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, this.audioCtx.currentTime);
+      const targetVol = this.isMuted ? 0 : (this.volume / 15) * 0.12;
+      this.masterGain.gain.setValueAtTime(targetVol, this.audioCtx.currentTime);
       this.masterGain.connect(this.audioCtx.destination);
 
       // Create persistent square wave oscillators for Voices 1, 2, 3
@@ -86,6 +112,10 @@ class Vic20SoundChip {
 
       // Create noise buffer source for Voice 4 (Noise generator)
       this.initNoiseChannel();
+
+      if (this.isMuted) {
+        this.silenceAll();
+      }
     }
 
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
@@ -119,27 +149,35 @@ class Vic20SoundChip {
    * @param {number} val - Byte value (0-255)
    */
   poke(register, val) {
-    if (this.isMuted) return;
-    this.ensureAudioContext();
-    if (!this.audioCtx) return;
-
-    const now = this.audioCtx.currentTime;
+    const channelIdx = register - 36874;
 
     // Master Volume Register (36878)
     if (register === 36878) {
       this.volume = val & 0x0f;
-      this.masterGain.gain.setValueAtTime((this.volume / 15) * 0.12, now);
+      if (this.masterGain && this.audioCtx) {
+        const now = this.audioCtx.currentTime;
+        const targetVol = this.isMuted ? 0 : (this.volume / 15) * 0.12;
+        this.masterGain.gain.setValueAtTime(targetVol, now);
+      }
       return;
     }
 
-    const channelIdx = register - 36874;
     if (channelIdx < 0 || channelIdx > 3) return;
 
     const ch = this.channels[channelIdx];
     ch.regVal = val;
 
+    if (!this.audioCtx) {
+      if (this.isMuted) return;
+      this.ensureAudioContext();
+      if (!this.audioCtx) return;
+    }
+
+    const now = this.audioCtx.currentTime;
     const enabled = (val & 0x80) !== 0; // Bit 7: Sound Enable
     const freqVal = val & 0x7f;        // Bits 0-6: Frequency
+
+    const targetGain = (enabled && !this.isMuted) ? (channelIdx < 3 ? 0.08 : 0.15) : 0;
 
     if (channelIdx < 3) {
       // Tone Channels 1, 2, 3 (Bass, Alto, Soprano)
@@ -147,18 +185,17 @@ class Vic20SoundChip {
         // Authentic Vic-20 Frequency Formula: Freq = (138550.5 / (255 - freqVal)) * octaveMultiplier
         const baseFreq = 138550.5 / (255 - freqVal);
         const freqHz = baseFreq * ch.octMult;
-        ch.osc.frequency.setValueAtTime(freqHz, now);
-        ch.gain.gain.setValueAtTime(0.08, now); // Voice volume
-      } else {
-        ch.gain.gain.setValueAtTime(0, now);
+        if (ch.osc) {
+          ch.osc.frequency.setValueAtTime(freqHz, now);
+        }
+      }
+      if (ch.gain) {
+        ch.gain.gain.setValueAtTime(targetGain, now);
       }
     } else {
       // Channel 4: White Noise
-      if (enabled) {
-        // Pitch simulation for noise register frequency
-        ch.gain.gain.setValueAtTime(0.15, now);
-      } else {
-        ch.gain.gain.setValueAtTime(0, now);
+      if (ch.gain) {
+        ch.gain.gain.setValueAtTime(targetGain, now);
       }
     }
   }
@@ -811,9 +848,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btnSound').addEventListener('click', (e) => {
     gameInstance.soundChip.isMuted = !gameInstance.soundChip.isMuted;
-    if (gameInstance.soundChip.isMuted) {
-      gameInstance.soundChip.silenceAll();
-    }
     e.currentTarget.innerHTML = gameInstance.soundChip.isMuted 
       ? '🔇 SOUND: OFF' 
       : '🔊 SOUND: ON';
