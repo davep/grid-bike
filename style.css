@@ -271,19 +271,74 @@ main {
 
 /* Controls Guide Grid */
 .controls-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .control-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.control-item:hover {
+  background: rgba(0, 240, 255, 0.04);
+  border-color: rgba(0, 240, 255, 0.15);
+}
+
+.control-label {
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  color: #a0aec0;
+  letter-spacing: 1px;
+}
+
+.key-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.key-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 5px;
+  background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  border-bottom: 2px solid #00a0b0;
+  border-radius: 4px;
+  font-family: var(--font-retro);
+  font-size: 0.65rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  text-shadow: 0 0 5px rgba(0, 240, 255, 0.4);
+  transition: all 0.15s ease;
+}
+
+.key-cap:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #3a4a63 0%, #252d3d 100%);
+  box-shadow: 0 3px 6px rgba(0, 240, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.key-sep {
+  color: #4a5568;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: bold;
+  user-select: none;
+  padding: 0 2px;
 }
 
 .key-badge {
@@ -295,6 +350,7 @@ main {
   font-family: var(--font-retro);
   font-size: 0.65rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  white-space: nowrap;
 }
 
 /* Action Buttons */
